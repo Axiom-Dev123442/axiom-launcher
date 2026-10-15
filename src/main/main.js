@@ -199,7 +199,10 @@ const api = {
 
   // Real block textures for instance icons, read from the player's game files.
   'icons:blocks': async () => {
-    const textures = await blockTextures.load();
+    // The first time, the game files are downloaded; show that in the downloads panel.
+    const textures = (await blockTextures.cached())
+      ? await blockTextures.load()
+      : await tasks.run({ title: 'Block icons (Minecraft 1.21.11)', kind: 'download' }, (task) => blockTextures.load({ task }));
     const out = {};
     for (const [key, buf] of Object.entries(textures)) out[key] = `data:image/png;base64,${buf.toString('base64')}`;
     return out;

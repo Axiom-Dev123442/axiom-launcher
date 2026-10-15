@@ -83,8 +83,14 @@ class BlockTextures {
     return best ? this.paths.versionJar(best.id) : null;
   }
 
+  /** True when icons were already extracted, so loading needs no download. */
+  async cached() {
+    const index = await readJson(path.join(this.dir, 'index.json'), null);
+    return Boolean(index && index.version === VERSION && index.found.length);
+  }
+
   /** Downloads the preferred version's client jar (or the latest release) into the versions folder. */
-  async _download() {
+  async _download(task) {
     const manifest = await this.versions.manifest();
     const has = (id) => manifest.versions.some((v) => v.id === id);
     const id = has(PREFERRED_VERSION) ? PREFERRED_VERSION : manifest.latest && manifest.latest.release;
@@ -93,7 +99,17 @@ class BlockTextures {
     const client = json.downloads && json.downloads.client;
     if (!client) return null;
     const jar = this.paths.versionJar(id);
-    if (!(await exists(jar))) await downloadFile(client.url, jar, { sha1: client.sha1 });
+    if (!(await exists(jar))) {
+      if (task) {
+        task.setStage(`Downloading Minecraft ${id} textures`);
+        task.addTotal(client.size || 0);
+      }
+      await downloadFile(client.url, jar, {
+        sha1: client.sha1,
+        signal: task && task.signal,
+        onBytes: task ? (n) => task.addDone(n) : undefined,
+      });
+    }
     return jar;
   }
 
@@ -116,15 +132,16 @@ class BlockTextures {
    * Returns { name: pngBuffer } for every available block texture, extracting
    * them from game files on first use. Resolves to {} when nothing is available.
    */
-  async load({ allowDownload = true } = {}) {
+  async load({ allowDownload = true, task = null } = {}) {
     if (this._pending) return this._pending;
     this._pending = (async () => {
       let index = await readJson(path.join(this.dir, 'index.json'), null);
       if (!index || index.version !== VERSION) {
         let jar = await this._localJar();
         const preferred = this.paths.versionJar(PREFERRED_VERSION);
-        if (allowDownload && jar !== preferred) jar = (await this._download().catch(() => null)) || jar;
+        if (allowDownload && jar !== preferred) jar = (await this._download(task).catch(() => null)) || jar;
         if (!jar) return {};
+        if (task) task.setStage('Reading block textures');
         await this._extract(jar);
         index = await readJson(path.join(this.dir, 'index.json'), { found: [] });
       }

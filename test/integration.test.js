@@ -74,8 +74,11 @@ test('install, fabric, modpack import and launch', { skip: process.platform === 
   assert.ok(inst.lastPlayed > 0);
 
   // Instance icons come from the downloaded game jar.
-  const textures = await new BlockTextures(paths, versions).load({ allowDownload: false });
+  const blocks = new BlockTextures(paths, versions);
+  assert.equal(await blocks.cached(), false);
+  const textures = await blocks.load({ allowDownload: false });
   assert.deepEqual(Object.keys(textures).sort(), ['crafting', 'obsidian']);
+  assert.equal(await blocks.cached(), true);
 
   // Fabric
   const fabric = await instances.create({ name: 'Fabric Test', mcVersion: '1.20.1', loader: 'fabric' });
