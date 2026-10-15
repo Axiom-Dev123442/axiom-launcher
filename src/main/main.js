@@ -1,7 +1,7 @@
 'use strict';
 const path = require('node:path');
 const fsp = require('node:fs/promises');
-const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } = require('electron');
 
 const { createPaths } = require('../core/paths');
 const { TaskManager } = require('../core/tasks');
@@ -21,6 +21,7 @@ const modrinth = require('../core/mods/modrinth');
 const curseforge = require('../core/mods/curseforge');
 const { setupUpdater } = require('./updater');
 const { BlockTextures } = require('../core/blockTextures');
+const presets = require('../core/presets');
 
 const RELEASES_URL = 'https://github.com/lazentho/obsidian-launcher/releases/latest';
 
@@ -108,6 +109,29 @@ game.on('exit', (id, info) => {
 });
 
 /* ---------- Helpers ---------- */
+
+/** Image formats Chromium can decode; the interface crops and resizes them into a PNG icon. */
+const IMAGE_TYPES = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  jfif: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  avif: 'image/avif',
+  svg: 'image/svg+xml',
+};
+
+async function readImageFile(file) {
+  const ext = path.extname(file).slice(1).toLowerCase();
+  const mime = IMAGE_TYPES[ext];
+  if (!mime) throw new Error('Use a PNG, JPG, WebP, GIF, BMP, ICO, AVIF or SVG image.');
+  const stat = await fsp.stat(file);
+  if (stat.size > 25 * 1024 * 1024) throw new Error('That image is too large (over 25 MB).');
+  return { mime, data: `data:${mime};base64,${(await fsp.readFile(file)).toString('base64')}` };
+}
 
 async function pickFile(filters, { multi = false, title } = {}) {
   const r = await dialog.showOpenDialog(win, {
@@ -219,12 +243,11 @@ const api = {
   },
   'instances:duplicate': (id) => instances.duplicate(id),
   'instances:pickIcon': async () => {
-    const file = await pickFile([{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }], { title: 'Choose an icon' });
+    const file = await pickFile([{ name: 'Images', extensions: Object.keys(IMAGE_TYPES) }], { title: 'Choose an icon' });
     if (!file) return null;
-    const img = nativeImage.createFromPath(file);
-    if (img.isEmpty()) throw new Error('That image could not be read.');
-    return { type: 'image', value: img.resize({ width: 128, height: 128, quality: 'best' }).toDataURL() };
+    return readImageFile(file);
   },
+  'instances:readIcon': (file) => readImageFile(file),
 
   // Game
   'game:launch': (id, opts) => game.launch(id, opts),
@@ -252,6 +275,17 @@ const api = {
     if (loginAbort) loginAbort.abort();
   },
   'accounts:refresh': (id) => accounts.refreshProfile(id),
+
+  // Ready-made instances and performance mods
+  'presets:list': () => presets.listPresets(),
+  'presets:install': (id) => {
+    const p = presets.PRESETS[id];
+    return tasks.run({ title: p ? p.name : 'Preset', kind: 'modpack' }, (task) => presets.installPreset(id, { instances, content }, task));
+  },
+  'presets:performance': async (id) => {
+    const inst = await instances.get(id);
+    return tasks.run({ title: `Performance mods → ${inst.name}`, kind: 'mod' }, (task) => presets.installPerformanceMods(id, { instances, content }, task));
+  },
 
   // Content (mods, resource packs, shaders)
   'content:list': (id, type) => content.list(id, type),

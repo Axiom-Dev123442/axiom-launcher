@@ -1581,6 +1581,11 @@ input[type='range']::-webkit-slider-thumb {
   grid-template-columns: repeat(auto-fill, 46px);
   gap: 8px;
 }
+.icon-picker.over {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
 .icon-picker button {
   width: 46px;
   height: 46px;
@@ -2572,6 +2577,33 @@ input[type='range']::-webkit-slider-thumb {
   font-size: 11.5px;
   color: var(--text-3);
   text-align: center;
+}
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.preset {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.preset .ii {
+  width: 52px;
+  height: 52px;
+}
+.preset .meta {
+  flex: 1;
+  min-width: 0;
+}
+.preset .chip {
+  height: 20px;
+  font-size: 11px;
+  text-transform: capitalize;
 }
 .version-list {
   height: 210px;

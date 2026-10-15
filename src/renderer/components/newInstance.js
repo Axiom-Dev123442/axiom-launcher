@@ -3,7 +3,7 @@ import { h, btn, segmented, spinner, toggle } from '../lib/dom.js';
 import { icon, loaderIcon } from '../lib/icons.js';
 import { call, state, refreshInstances, pathForFile } from '../lib/store.js';
 import { modal, showError, toast } from '../lib/ui.js';
-import { BLOCK_NAMES, blockIcon } from '../lib/blocks.js';
+import { BLOCK_NAMES, blockIcon, imageToIcon } from '../lib/blocks.js';
 import { navigate } from '../router.js';
 
 const LOADERS = [
@@ -14,6 +14,16 @@ const LOADERS = [
 
 export function iconPicker(current, onPick) {
   const el = h('div.icon-picker');
+  const useImage = async (picked) => {
+    if (!picked) return;
+    try {
+      current = await imageToIcon(picked.data);
+      onPick(current);
+      render();
+    } catch (err) {
+      showError(err);
+    }
+  };
   const render = () => {
     el.replaceChildren(
       ...BLOCK_NAMES.map((name) =>
@@ -37,15 +47,10 @@ export function iconPicker(current, onPick) {
         'button.upload',
         {
           type: 'button',
-          title: 'Upload an image',
+          title: 'Use your own image (PNG, JPG, WebP, GIF, BMP, ICO, AVIF or SVG). You can also drop one here.',
           onclick: async () => {
             try {
-              const picked = await call('instances:pickIcon');
-              if (picked) {
-                current = picked;
-                onPick(current);
-                render();
-              }
+              await useImage(await call('instances:pickIcon'));
             } catch (err) {
               showError(err);
             }
@@ -55,6 +60,24 @@ export function iconPicker(current, onPick) {
       ),
     );
   };
+  el.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.add('over');
+  });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    try {
+      await useImage(await call('instances:readIcon', pathForFile(f)));
+    } catch (err) {
+      showError(err);
+    }
+  });
   render();
   return el;
 }
@@ -154,6 +177,7 @@ export function loaderVersionSelect(getState, onPick) {
 
 export function newInstanceDialog({ tab = 'create' } = {}) {
   return modal((close) => {
+    let performance = true;
     const form = { name: '', icon: { type: 'preset', value: BLOCK_NAMES[Math.floor(Math.random() * BLOCK_NAMES.length)] }, mcVersion: null, loader: 'vanilla', loaderVersion: null };
     const body = h('div');
 
@@ -161,6 +185,12 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
     nameInput.addEventListener('input', () => (form.name = nameInput.value));
 
     const lv = loaderVersionSelect(() => form, (v) => (form.loaderVersion = v));
+    const perfRow = h(
+      'label.row',
+      { style: 'gap:10px;margin-top:14px' },
+      toggle(performance, (v) => (performance = v)),
+      h('span', h('b', 'Performance mods'), h('span.dim.small', { style: 'display:block' }, 'Sodium, Lithium, FerriteCore, EntityCulling, ImmediatelyFast and more')),
+    );
     const loaderCards = h('div.loader-cards');
     const renderLoaders = () => {
       loaderCards.replaceChildren(
@@ -174,6 +204,7 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
                 form.loaderVersion = null;
                 renderLoaders();
                 lv.reload();
+                perfRow.hidden = l.id !== 'fabric';
               },
             },
             loaderIcon(l.id),
@@ -195,6 +226,50 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
       })),
       h('div.field', h('label', 'Mod loader'), loaderCards),
       h('div.field', { style: 'margin-bottom:0' }, h('label', 'Loader version'), lv.el),
+      perfRow,
+    );
+    perfRow.hidden = true;
+
+    const presetsPane = h('div.preset-list', h('div.center', spinner()));
+    call('presets:list').then(
+      (list) =>
+        presetsPane.replaceChildren(
+          ...list.map((p) =>
+            h(
+              'div.preset',
+              h('img.ii', { src: blockIcon(p.icon), alt: '' }),
+              h(
+                'div.meta',
+                h('b', p.name),
+                h('div.small.muted', p.description),
+                h('div.row.wrap', { style: 'gap:5px;margin-top:8px' }, h('span.chip', `${p.modCount} mods`), ...p.highlights.map((x) => h('span.chip', x.replace(/-liam$/, '').replace(/-/g, ' ')))),
+              ),
+              btn('Install', {
+                cls: 'primary sm',
+                icon: 'download',
+                onClick: async () => {
+                  close(true);
+                  toast(`Setting up ${p.name}`, { message: 'Watch progress in the downloads panel.', timeout: 2500 });
+                  try {
+                    const r = await call('presets:install', p.id);
+                    await refreshInstances();
+                    navigate({ page: 'instance', id: r.instance.id });
+                    toast(`${p.name} is ready`, {
+                      kind: 'success',
+                      message: r.skipped.length
+                        ? `Skipped (no build for ${r.instance.mcVersion} yet): ${r.skipped.join(', ')}`
+                        : `Minecraft ${r.instance.mcVersion} with ${r.installed.length} mods and packs.`,
+                      timeout: 9000,
+                    });
+                  } catch (err) {
+                    showError(err, `Couldn’t set up ${p.name}`);
+                  }
+                },
+              }),
+            ),
+          ),
+        ),
+      (err) => presetsPane.replaceChildren(h('div.dim', err.message)),
     );
 
     const doImport = async (file) => {
@@ -262,6 +337,9 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
           close(inst);
           navigate({ page: 'instance', id: inst.id });
           toast(`${inst.name} created`, { kind: 'success', message: 'Press Play and Obsidian downloads everything it needs.' });
+          if (form.loader === 'fabric' && performance) {
+            call('presets:performance', inst.id).catch((err) => showError(err, 'Couldn’t add performance mods'));
+          }
         } catch (err) {
           createBtn.disabled = false;
           showError(err, 'Could not create instance');
@@ -271,13 +349,13 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
     const footer = h('div.row', { style: 'width:100%;justify-content:flex-end;gap:10px' }, btn('Cancel', { cls: 'ghost', onClick: () => close(false) }), createBtn);
 
     const show = (t) => {
-      body.replaceChildren(t === 'create' ? createPane : importPane);
+      body.replaceChildren(t === 'create' ? createPane : t === 'presets' ? presetsPane : importPane);
       footer.style.display = t === 'create' ? '' : 'none';
     };
     show(tab);
     return {
       title: 'New instance',
-      body: h('div', h('div', { style: 'margin-bottom:18px' }, segmented([{ value: 'create', label: 'Create', icon: 'plus' }, { value: 'import', label: 'Import', icon: 'package' }], tab, show)), body),
+      body: h('div', h('div', { style: 'margin-bottom:18px' }, segmented([{ value: 'create', label: 'Create', icon: 'plus' }, { value: 'presets', label: 'Presets', icon: 'sparkles' }, { value: 'import', label: 'Import', icon: 'package' }], tab, show)), body),
       footer,
     };
   });

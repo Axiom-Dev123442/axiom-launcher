@@ -53,7 +53,10 @@ const TEXTURES = {
   beacon: 'beacon',
 };
 
-const VERSION = 1;
+const VERSION = 2;
+
+/** The game version whose block textures are used for icons. */
+const PREFERRED_VERSION = '1.21.11';
 
 class BlockTextures {
   constructor(paths, versions) {
@@ -63,8 +66,9 @@ class BlockTextures {
     this._pending = null;
   }
 
-  /** Newest installed vanilla client jar, if any. */
+  /** The preferred version's jar if it's installed, else the newest installed vanilla jar. */
   async _localJar() {
+    if (await exists(this.paths.versionJar(PREFERRED_VERSION))) return this.paths.versionJar(PREFERRED_VERSION);
     let best = null;
     let ids = [];
     try {
@@ -79,10 +83,11 @@ class BlockTextures {
     return best ? this.paths.versionJar(best.id) : null;
   }
 
-  /** Downloads the latest release's client jar into the normal versions folder. */
-  async _downloadLatest() {
+  /** Downloads the preferred version's client jar (or the latest release) into the versions folder. */
+  async _download() {
     const manifest = await this.versions.manifest();
-    const id = manifest.latest && manifest.latest.release;
+    const has = (id) => manifest.versions.some((v) => v.id === id);
+    const id = has(PREFERRED_VERSION) ? PREFERRED_VERSION : manifest.latest && manifest.latest.release;
     if (!id) return null;
     const json = await this.versions.ensureVersion(id);
     const client = json.downloads && json.downloads.client;
@@ -117,7 +122,8 @@ class BlockTextures {
       let index = await readJson(path.join(this.dir, 'index.json'), null);
       if (!index || index.version !== VERSION) {
         let jar = await this._localJar();
-        if (!jar && allowDownload) jar = await this._downloadLatest().catch(() => null);
+        const preferred = this.paths.versionJar(PREFERRED_VERSION);
+        if (allowDownload && jar !== preferred) jar = (await this._download().catch(() => null)) || jar;
         if (!jar) return {};
         await this._extract(jar);
         index = await readJson(path.join(this.dir, 'index.json'), { found: [] });
@@ -142,4 +148,4 @@ class BlockTextures {
   }
 }
 
-module.exports = { BlockTextures, BLOCK_TEXTURES: TEXTURES };
+module.exports = { BlockTextures, BLOCK_TEXTURES: TEXTURES, PREFERRED_VERSION };

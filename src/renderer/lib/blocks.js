@@ -182,3 +182,28 @@ export function iconSrc(icon) {
 export function iconIsPixel(icon) {
   return !icon || icon.type === 'preset';
 }
+
+/**
+ * Turns any image the browser can decode (PNG, JPG, WebP, GIF, BMP, ICO, AVIF,
+ * SVG) into a 128×128 PNG icon, cropped to the centre square.
+ */
+export async function imageToIcon(src) {
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error('That image could not be read.'));
+    i.src = src;
+  });
+  const w = img.naturalWidth || 128;
+  const h = img.naturalHeight || 128;
+  const side = Math.min(w, h);
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext('2d');
+  // Keep pixel art crisp when scaling small images up.
+  g.imageSmoothingEnabled = side >= 128;
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, 128, 128);
+  return { type: 'image', value: c.toDataURL('image/png') };
+}
