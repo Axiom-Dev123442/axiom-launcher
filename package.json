@@ -57,7 +57,12 @@
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
-      "artifactName": "Obsidian-Full-Setup-${version}.${ext}"
+      "artifactName": "Obsidian-Full-Setup-${version}.${ext}",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerHeaderIcon": "build/icon.ico",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "Obsidian"
     },
     "nsisWeb": {
       "oneClick": false,
@@ -70,7 +75,12 @@
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
-      "artifactName": "Obsidian-Setup.${ext}"
+      "artifactName": "Obsidian-Setup.${ext}",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerHeaderIcon": "build/icon.ico",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "Obsidian"
     },
     "publish": [
       {
@@ -79,6 +89,11 @@
         "repo": "obsidian-launcher",
         "releaseType": "release"
       }
-    ]
+    ],
+    "electronLanguages": [
+      "en-US",
+      "nl"
+    ],
+    "compression": "maximum"
   }
 }

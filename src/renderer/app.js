@@ -4,6 +4,7 @@ import { applyTheme } from './lib/themes.js';
 import { call, onMain, emit, state, refreshInstances, refreshAccounts, refreshSettings } from './lib/store.js';
 import { toast, showError } from './lib/ui.js';
 import { registerPage, render, navigate } from './router.js';
+import { useRealTextures } from './lib/blocks.js';
 import { sidebar, titlebar } from './components/shell.js';
 import { homePage } from './pages/home.js';
 import { libraryPage } from './pages/library.js';
@@ -32,6 +33,16 @@ async function boot() {
   const app = document.getElementById('app');
   app.append(sidebar(), titlebar(), h('main.main'));
   render();
+
+  // Swap the drawn icons for real block textures once they are available.
+  call('icons:blocks')
+    .then(async (textures) => {
+      if (!Object.keys(textures).length) return;
+      await useRealTextures(textures);
+      emit('instances');
+      render();
+    })
+    .catch(() => {});
 
   onMain('tasks', (list) => {
     state.tasks = list;

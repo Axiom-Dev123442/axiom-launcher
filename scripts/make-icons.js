@@ -110,6 +110,18 @@ app.whenReady().then(async () => {
   );
   fs.writeFileSync(path.join(ROOT, 'build', 'installerSidebar.bmp'), bmp(sidebar));
 
+  // Banner shown at the top of the installer's inner pages (NSIS wants 150×57).
+  const header = await render(
+    win,
+    `<div style="width:150px;height:57px;background:#ffffff;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-right:12px;box-sizing:border-box;font-family:'Segoe UI',sans-serif">
+      <div style="color:#1b1530;font-weight:700;letter-spacing:.18em;font-size:11px">OBSIDIAN</div>
+      ${logoAt(34)}
+    </div>`,
+    150,
+    57,
+  );
+  fs.writeFileSync(path.join(ROOT, 'build', 'installerHeader.bmp'), bmp(header));
+
   const discord = await render(win, `<div style="width:1024px;height:1024px;background:#0e0b16;display:grid;place-items:center">${logoAt(760)}</div>`, 1024, 1024);
   fs.writeFileSync(path.join(ROOT, 'assets', 'discord', 'obsidian.png'), discord.toPNG());
 

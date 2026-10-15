@@ -20,6 +20,7 @@ const { forgeVersions } = require('../core/loaders/forge');
 const modrinth = require('../core/mods/modrinth');
 const curseforge = require('../core/mods/curseforge');
 const { setupUpdater } = require('./updater');
+const { BlockTextures } = require('../core/blockTextures');
 
 const RELEASES_URL = 'https://github.com/lazentho/obsidian-launcher/releases/latest';
 
@@ -39,6 +40,7 @@ const content = new ContentManager(instances);
 const modpacks = new ModpackManager({ paths, instances, content });
 const skinLibrary = new SkinLibrary(paths);
 const discord = new DiscordPresence();
+const blockTextures = new BlockTextures(paths, versions);
 
 const accounts = new AccountStore(paths, {
   encrypt: (s) =>
@@ -169,6 +171,14 @@ const api = {
     if (kind === 'instance') dir = sub ? path.join(instances.gameDir(id), sub) : instances.gameDir(id);
     await fsp.mkdir(dir, { recursive: true });
     await shell.openPath(dir);
+  },
+
+  // Real block textures for instance icons, read from the player's game files.
+  'icons:blocks': async () => {
+    const textures = await blockTextures.load();
+    const out = {};
+    for (const [key, buf] of Object.entries(textures)) out[key] = `data:image/png;base64,${buf.toString('base64')}`;
+    return out;
   },
 
   // Settings

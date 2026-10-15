@@ -109,12 +109,45 @@ const BLOCKS = {
   },
 };
 
-export const BLOCK_NAMES = Object.keys(BLOCKS);
+/** Icons offered in the picker. Names without a drawn fallback only show once real textures are loaded. */
+const ALL_NAMES = [
+  'obsidian', 'grass', 'dirt', 'stone', 'deepslate', 'diamond', 'emerald', 'gold', 'redstone', 'lapis',
+  'netherrack', 'endstone', 'glowstone', 'amethyst', 'ice', 'sculk', 'cherry', 'planks', 'log', 'tnt',
+  'crafting', 'furnace', 'bookshelf', 'pumpkin', 'diamondblock', 'goldblock', 'netherite', 'debris', 'crying',
+  'honey', 'slime', 'magma', 'prismarine', 'sealantern', 'moss', 'bricks', 'sand', 'command', 'spawner', 'beacon',
+];
+
+export let BLOCK_NAMES = Object.keys(BLOCKS);
 
 const cache = new Map();
+const real = new Map();
+
+/**
+ * Switches icons to the real block textures from the player's game files.
+ * Animated textures are vertical strips, so only the first frame is used.
+ */
+export async function useRealTextures(textures) {
+  for (const [name, src] of Object.entries(textures)) {
+    const img = await new Promise((resolve) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => resolve(null);
+      i.src = src;
+    });
+    if (!img) continue;
+    const size = img.width;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    c.getContext('2d').drawImage(img, 0, 0, size, size, 0, 0, size, size);
+    real.set(name, c.toDataURL());
+  }
+  BLOCK_NAMES = ALL_NAMES.filter((n) => real.has(n) || BLOCKS[n]);
+}
 
 /** Returns a PNG data URL for a block icon. */
 export function blockIcon(name) {
+  if (real.has(name)) return real.get(name);
   if (!BLOCKS[name]) name = 'obsidian';
   if (cache.has(name)) return cache.get(name);
   const px = new Array(256);
