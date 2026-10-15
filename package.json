@@ -1,0 +1,80 @@
+{
+  "name": "obsidian-launcher",
+  "productName": "Obsidian",
+  "version": "0.1.0",
+  "description": "Obsidian, a custom Minecraft launcher",
+  "author": "lazentho",
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/*.test.js\"",
+    "dist": "electron-builder --win nsis-web",
+    "dist:full": "electron-builder --win nsis",
+    "release": "electron-builder --win nsis-web --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "skinview3d": "3.4.2"
+  },
+  "devDependencies": {
+    "electron": "39.8.10",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "dev.lazentho.obsidian",
+    "productName": "Obsidian",
+    "copyright": "Copyright © 2026 lazentho",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis-web"
+      ],
+      "artifactName": "Obsidian-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Obsidian",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "artifactName": "Obsidian-Full-Setup-${version}.${ext}"
+    },
+    "nsisWeb": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Obsidian",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "artifactName": "Obsidian-Setup.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "lazentho",
+        "repo": "obsidian-launcher",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
