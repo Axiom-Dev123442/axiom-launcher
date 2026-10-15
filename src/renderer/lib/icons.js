@@ -66,21 +66,19 @@ export function icon(name, cls = '') {
   return wrap.firstChild;
 }
 
-/** The Obsidian logo: a faceted crystal. */
+/** The Obsidian app icon, in the variant that suits the current theme. */
+export function logoSrc() {
+  return document.documentElement.dataset.mode === 'light' ? '../../assets/logo-light.png' : '../../assets/logo.png';
+}
+
 export function logo(cls = '') {
-  const wrap = document.createElement('span');
-  wrap.innerHTML = `<svg viewBox="0 0 64 64" class="${cls}" aria-label="Obsidian">
-  <defs>
-    <linearGradient id="lg-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent-2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient>
-    <linearGradient id="lg-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-  </defs>
-  <path d="M32 3 55 17v30L32 61 9 47V17Z" fill="url(#lg-a)"/>
-  <path d="M32 3 55 17 32 29 9 17Z" fill="url(#lg-b)" opacity=".55"/>
-  <path d="M32 29v32L9 47V17Z" fill="#000" opacity=".28"/>
-  <path d="M32 29 55 17v30L32 61Z" fill="#000" opacity=".1"/>
-  <path d="M32 14 43 21 32 28 21 21Z" fill="#fff" opacity=".35"/>
-</svg>`;
-  return wrap.firstChild;
+  const img = document.createElement('img');
+  img.src = logoSrc();
+  img.dataset.logo = '1';
+  img.alt = 'Obsidian';
+  img.className = cls;
+  img.draggable = false;
+  return img;
 }
 
 /** Simple loader marks for Vanilla, Fabric and Forge. */

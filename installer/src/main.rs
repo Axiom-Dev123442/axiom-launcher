@@ -5,7 +5,7 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 use eframe::egui::{
-    self, Align2, Color32, CornerRadius, FontFamily, FontId, Pos2, Rect, Sense, Shape, Stroke, Vec2,
+    self, Align2, Color32, CornerRadius, FontFamily, FontId, Pos2, Rect, Sense, Stroke, Vec2,
 };
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -48,6 +48,7 @@ struct Progress {
 }
 
 struct App {
+    logo: egui::TextureHandle,
     progress: Arc<Mutex<Progress>>,
     dir: PathBuf,
     launch_after: bool,
@@ -201,19 +202,6 @@ fn obsidian_texture(painter: &egui::Painter, rect: Rect, pixel: f32) {
     }
 }
 
-/// The Obsidian crystal, drawn from the same geometry as the app icon (64-unit grid).
-fn logo(painter: &egui::Painter, center: Pos2, size: f32) {
-    let s = size / 64.0;
-    let pt = |x: f32, y: f32| Pos2::new(center.x + (x - 32.0) * s, center.y + (y - 32.0) * s);
-    let face = |pts: &[(f32, f32)], c: Color32| {
-        painter.add(Shape::convex_polygon(pts.iter().map(|&(x, y)| pt(x, y)).collect(), c, Stroke::NONE));
-    };
-    face(&[(32.0, 3.0), (55.0, 17.0), (32.0, 29.0), (9.0, 17.0)], Color32::from_rgb(181, 162, 244));
-    face(&[(9.0, 17.0), (32.0, 29.0), (32.0, 61.0), (9.0, 47.0)], Color32::from_rgb(98, 76, 178));
-    face(&[(32.0, 29.0), (55.0, 17.0), (55.0, 47.0), (32.0, 61.0)], Color32::from_rgb(123, 99, 212));
-    face(&[(32.0, 14.0), (43.0, 21.0), (32.0, 28.0), (21.0, 21.0)], Color32::from_rgb(199, 184, 248));
-}
-
 fn stroke(width: f32, color: Color32) -> Stroke {
     Stroke::new(width, color)
 }
@@ -334,7 +322,12 @@ impl App {
             _ => Phase::Welcome,
         };
         let progress = Arc::new(Mutex::new(Progress { phase, done: 51 * 1_048_576, total: 83 * 1_048_576, speed: 13.8 * 1_048_576.0 }));
-        App { progress, dir: default_dir(), launch_after: true, demo }
+        let logo = cc.egui_ctx.load_texture(
+            "logo",
+            egui::ColorImage::from_rgba_unmultiplied([160, 160], include_bytes!("../assets/logo160.rgba")),
+            egui::TextureOptions::LINEAR,
+        );
+        App { logo, progress, dir: default_dir(), launch_after: true, demo }
     }
 
     fn start(&mut self) {
@@ -377,7 +370,8 @@ impl eframe::App for App {
             obsidian_texture(&painter, side, 25.0);
             painter.line_segment([side.right_top(), side.right_bottom()], stroke(1.0, BORDER));
             let lc = Pos2::new(side.center().x, side.top() + 150.0);
-            logo(&painter, lc, 92.0);
+            let logo_rect = Rect::from_center_size(lc, Vec2::splat(112.0));
+            painter.image(self.logo.id(), logo_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
             painter.text(Pos2::new(lc.x, lc.y + 80.0), Align2::CENTER_CENTER, "Obsidian", FontId::new(24.0, FontFamily::Name("display".into())), TEXT);
             painter.text(Pos2::new(lc.x, lc.y + 106.0), Align2::CENTER_CENTER, "Minecraft launcher", font(13.0), TEXT_2);
             painter.text(Pos2::new(side.left() + 20.0, side.bottom() - 22.0), Align2::LEFT_CENTER, format!("Setup {}", env!("CARGO_PKG_VERSION")), font(11.5), TEXT_3);

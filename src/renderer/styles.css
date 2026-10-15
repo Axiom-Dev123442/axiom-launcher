@@ -263,15 +263,15 @@ a {
   padding: 6px 10px 22px;
   -webkit-app-region: drag;
 }
-.brand svg {
+.brand img {
   width: 30px;
   height: 30px;
 }
 .brand .word {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.22em;
+  font-size: 17px;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 .nav {
@@ -2268,7 +2268,11 @@ input[type='range']::-webkit-slider-thumb {
   align-items: center;
   gap: 18px;
 }
-.about svg.logo {
+.discord-logo {
+  width: 56px;
+  height: 56px;
+}
+.about img.logo {
   width: 64px;
   height: 64px;
 }

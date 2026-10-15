@@ -186,5 +186,7 @@ export function applyTheme(name, accent, animations = true) {
   };
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
   root.dataset.mode = t.dark ? 'dark' : 'light';
+  const logo = t.dark ? '../../assets/logo.png' : '../../assets/logo-light.png';
+  for (const img of document.querySelectorAll('img[data-logo]')) img.src = logo;
   root.dataset.animations = animations ? 'on' : 'off';
 }

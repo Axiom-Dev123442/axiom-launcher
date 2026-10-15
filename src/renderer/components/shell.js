@@ -83,7 +83,7 @@ export function sidebar() {
   on('game-state', renderRecent);
   on('accounts', renderAccount);
 
-  return h('aside.sidebar', h('div.brand', logo(), h('span.word', 'OBSIDIAN')), nav, recent, account);
+  return h('aside.sidebar', h('div.brand', logo(), h('span.word', 'Obsidian')), nav, recent, account);
 }
 
 export function titlebar() {

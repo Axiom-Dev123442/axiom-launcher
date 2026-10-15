@@ -12,7 +12,7 @@
     "test": "node --test \"test/*.test.js\"",
     "dist": "electron-builder --win nsis",
     "release": "electron-builder --win nsis --publish always",
-    "icons": "electron scripts/make-icons.js",
+    "icons": "python3 scripts/make-icons.py",
     "setup": "cargo build --release --manifest-path installer/Cargo.toml"
   },
   "dependencies": {

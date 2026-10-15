@@ -306,7 +306,7 @@ function discord() {
       h(
         'div.row',
         { style: 'gap:14px;padding:14px;border-radius:8px;background:#111214;color:#dbdee1' },
-        h('div', { style: 'width:64px;height:64px;border-radius:7px;display:grid;place-items:center;background:#1e1f22' }, logo('')),
+        h('div', { style: 'width:64px;height:64px;border-radius:7px;display:grid;place-items:center;background:#1e1f22' }, logo('discord-logo')),
         h('div', h('div', { style: 'font-weight:700;color:#fff' }, 'Playing Minecraft'), h('div', 'using Obsidian Launcher'), h('div', '1.20.1 Fabric · My Survival World'), h('div', { style: 'color:#949ba4;font-size:12px' }, '00:42 elapsed')),
       ),
     ),
