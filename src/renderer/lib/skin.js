@@ -30,9 +30,9 @@ export function defaultSkin() {
   const SKIN_D = [176, 124, 92];
   const HAIR = [58, 40, 26];
   const HAIR_L = [78, 55, 36];
-  const HOOD = [74, 58, 150];
-  const HOOD_D = [56, 43, 118];
-  const TRIM = [150, 132, 226];
+  const HOOD = [38, 92, 158];
+  const HOOD_D = [27, 68, 122];
+  const TRIM = [146, 200, 250];
   const PANTS = [44, 48, 66];
   const PANTS_D = [34, 37, 52];
   const BOOTS = [30, 28, 34];
@@ -51,8 +51,8 @@ export function defaultSkin() {
   // Face
   fill([255, 255, 255], 9, 12, 2, 1, 0);
   fill([255, 255, 255], 13, 12, 2, 1, 0);
-  px([70, 58, 170], 10, 12);
-  px([70, 58, 170], 13, 12);
+  px([40, 104, 182], 10, 12);
+  px([40, 104, 182], 13, 12);
   fill(SKIN_D, 11, 13, 2, 1, 4);
   fill([130, 80, 62], 11, 14, 2, 1, 0);
   fill(SKIN_D, 8, 15, 8, 1, 4);

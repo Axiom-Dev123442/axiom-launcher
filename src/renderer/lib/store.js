@@ -23,7 +23,12 @@ export function on(event, fn) {
 }
 
 export function emit(event, ...args) {
-  for (const fn of listeners.get(event) || []) {
+  const set = listeners.get(event);
+  if (!set) return;
+  // Loop over a copy: a listener that re-renders a page removes itself and adds a new one, and
+  // walking the live set would call that new one too, forever (the window froze on Home).
+  for (const fn of [...set]) {
+    if (!set.has(fn)) continue;
     try {
       fn(...args);
     } catch (err) {

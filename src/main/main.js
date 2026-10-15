@@ -504,7 +504,7 @@ function createWindow() {
     minHeight: 640,
     frame: false,
     show: false,
-    backgroundColor: '#09080d',
+    backgroundColor: '#06090d',
     title: 'Axiom',
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     webPreferences: {

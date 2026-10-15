@@ -12,7 +12,8 @@
     "test": "node --test \"test/*.test.js\"",
     "dist": "electron-builder --win nsis",
     "release": "electron-builder --win nsis --publish always",
-    "icons": "python3 scripts/make-icons.py",
+    "icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/make-icons.ps1",
+    "screenshots": "electron scripts/screenshots.js",
     "setup": "cargo build --release --manifest-path installer/Cargo.toml"
   },
   "dependencies": {

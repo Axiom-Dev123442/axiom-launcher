@@ -20,16 +20,16 @@ const WIDTH: f32 = 680.0;
 const HEIGHT: f32 = 420.0;
 const SIDE: f32 = 250.0;
 
-// Palette, matching the launcher's Axiom theme.
-const BG: Color32 = Color32::from_rgb(12, 11, 18);
-const SURFACE: Color32 = Color32::from_rgb(22, 20, 31);
-const SURFACE_HOVER: Color32 = Color32::from_rgb(30, 27, 42);
-const BORDER: Color32 = Color32::from_rgb(40, 36, 54);
-const TEXT: Color32 = Color32::from_rgb(242, 240, 248);
-const TEXT_2: Color32 = Color32::from_rgb(178, 172, 196);
-const TEXT_3: Color32 = Color32::from_rgb(122, 116, 142);
-const ACCENT: Color32 = Color32::from_rgb(123, 97, 209);
-const ACCENT_HOVER: Color32 = Color32::from_rgb(138, 113, 222);
+// Palette, matching the launcher's Axiom theme (taken from the logo).
+const BG: Color32 = Color32::from_rgb(8, 11, 16);
+const SURFACE: Color32 = Color32::from_rgb(17, 22, 30);
+const SURFACE_HOVER: Color32 = Color32::from_rgb(25, 31, 41);
+const BORDER: Color32 = Color32::from_rgb(36, 44, 56);
+const TEXT: Color32 = Color32::from_rgb(238, 243, 248);
+const TEXT_2: Color32 = Color32::from_rgb(168, 180, 195);
+const TEXT_3: Color32 = Color32::from_rgb(107, 119, 135);
+const ACCENT: Color32 = Color32::from_rgb(47, 134, 224);
+const ACCENT_HOVER: Color32 = Color32::from_rgb(72, 152, 236);
 const SUCCESS: Color32 = Color32::from_rgb(52, 178, 102);
 const DANGER: Color32 = Color32::from_rgb(232, 82, 104);
 
@@ -223,17 +223,17 @@ fn launch(dir: &PathBuf) {
 
 /* ---------- Drawing helpers ---------- */
 
-/// Fills a rect with a large-pixel obsidian block pattern (drawn here, not
+/// Fills a rect with a large-pixel dark steel pattern with ice-blue specks (drawn here, not
 /// taken from the game), so the brand panel reads as Minecraft without art assets.
-fn obsidian_texture(painter: &egui::Painter, rect: Rect, pixel: f32) {
+fn brand_texture(painter: &egui::Painter, rect: Rect, pixel: f32) {
     const BASE: [Color32; 5] = [
-        Color32::from_rgb(18, 13, 30),
-        Color32::from_rgb(22, 15, 36),
-        Color32::from_rgb(15, 11, 24),
-        Color32::from_rgb(26, 18, 41),
-        Color32::from_rgb(20, 14, 33),
+        Color32::from_rgb(11, 15, 21),
+        Color32::from_rgb(14, 19, 26),
+        Color32::from_rgb(9, 12, 17),
+        Color32::from_rgb(17, 23, 31),
+        Color32::from_rgb(12, 17, 24),
     ];
-    const SPECK: [Color32; 3] = [Color32::from_rgb(52, 37, 82), Color32::from_rgb(44, 31, 69), Color32::from_rgb(64, 46, 100)];
+    const SPECK: [Color32; 3] = [Color32::from_rgb(34, 70, 110), Color32::from_rgb(28, 54, 86), Color32::from_rgb(47, 96, 150)];
     let mut seed: u32 = 0x9e37_79b9;
     let mut next = move || {
         seed ^= seed << 13;
@@ -446,7 +446,7 @@ impl eframe::App for App {
 
             // Left brand panel
             let side = Rect::from_min_size(full.min, Vec2::new(SIDE, full.height()));
-            obsidian_texture(&painter, side, 25.0);
+            brand_texture(&painter, side, 25.0);
             painter.line_segment([side.right_top(), side.right_bottom()], stroke(1.0, BORDER));
             let lc = Pos2::new(side.center().x, side.top() + 150.0 + (1.0 - intro) * 10.0);
             let logo_rect = Rect::from_center_size(lc, Vec2::splat(112.0));

@@ -1,22 +1,23 @@
 /** Theme definitions. Every colour in the interface comes from these tokens. */
 export const THEMES = {
+  // The default theme, taken from the Axiom logo: ice-blue light on a cool, near-black steel.
   axiom: {
     name: 'Axiom',
     dark: true,
-    bg: '#09080e',
-    elev: 'rgba(20, 16, 31, 0.72)',
+    bg: '#06090d',
+    elev: 'rgba(13, 18, 26, 0.74)',
     surface: 'rgba(255, 255, 255, 0.035)',
     surface2: 'rgba(255, 255, 255, 0.06)',
     surface3: 'rgba(255, 255, 255, 0.09)',
     border: 'rgba(255, 255, 255, 0.07)',
     borderStrong: 'rgba(255, 255, 255, 0.13)',
-    text: '#f4f2fa',
-    text2: '#b7b2c8',
-    text3: '#7d7792',
-    accent: '#7b61d1',
-    accent2: '#a58bf0',
-    glow1: 'rgba(98, 70, 180, 0.30)',
-    glow2: 'rgba(54, 33, 110, 0.38)',
+    text: '#eef3f8',
+    text2: '#a8b4c3',
+    text3: '#6b7787',
+    accent: '#2f86e0',
+    accent2: '#9fd2ff',
+    glow1: 'rgba(47, 134, 224, 0.24)',
+    glow2: 'rgba(140, 170, 205, 0.12)',
   },
   midnight: {
     name: 'Midnight',
@@ -128,7 +129,7 @@ export const THEMES = {
   },
 };
 
-export const ACCENT_SWATCHES = ['#7b61d1', '#3f7fe0', '#1f9fb5', '#3a9d57', '#c99a2e', '#dd7232', '#d2493f', '#c9508a'];
+export const ACCENT_SWATCHES = ['#2f86e0', '#7b61d1', '#1f9fb5', '#3a9d57', '#c99a2e', '#dd7232', '#d2493f', '#c9508a'];
 
 function hexToHsl(hex) {
   const n = parseInt(hex.slice(1), 16);

@@ -25,6 +25,10 @@ A custom Minecraft launcher for Windows. Play with Microsoft or offline accounts
 | --- | --- | --- |
 | ![Library](docs/screenshots/library.png) | ![Browse](docs/screenshots/browse.png) | ![Skins](docs/screenshots/skins.png) |
 
+| Worlds and backups | Presets | Frost theme |
+| --- | --- | --- |
+| ![Worlds](docs/screenshots/worlds.png) | ![Presets](docs/screenshots/presets.png) | ![Frost](docs/screenshots/home-frost.png) |
+
 ## Install
 
 Download `Axiom-Setup.exe` from the [latest release](https://github.com/axiomdev/axiom-launcher/releases/latest) and run it. It downloads the latest Axiom, installs it with Start menu and desktop shortcuts, and starts it. Axiom updates itself after that. `Axiom-Full-Setup.exe` on the same page is the standard offline installer.
@@ -65,7 +69,8 @@ npm start          # run the launcher
 npm test           # unit and end-to-end tests
 npm run dist       # build the full Windows installer into dist/
 npm run setup      # build the custom installer (Rust) into installer/target/release/
-npm run icons      # regenerate icons and installer images from the logo
+npm run icons      # regenerate icons and installer images from the logo (Windows)
+npm run screenshots # regenerate docs/screenshots with demo data
 ```
 
 Building the Windows installer needs Windows (or Wine on Linux). GitHub Actions builds it on every push: open the run under **Actions** and download the **Axiom-Windows** artifact.

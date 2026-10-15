@@ -3,22 +3,22 @@
    ========================================================================== */
 
 :root {
-  --bg: #09080e;
-  --elev: rgba(20, 16, 31, 0.72);
+  --bg: #06090d;
+  --elev: rgba(13, 18, 26, 0.74);
   --surface: rgba(255, 255, 255, 0.035);
   --surface-2: rgba(255, 255, 255, 0.06);
   --surface-3: rgba(255, 255, 255, 0.09);
   --border: rgba(255, 255, 255, 0.07);
   --border-strong: rgba(255, 255, 255, 0.13);
-  --text: #f4f2fa;
-  --text-2: #b7b2c8;
-  --text-3: #7d7792;
-  --accent: #8b5cf6;
-  --accent-2: #d06cff;
-  --accent-soft: rgba(139, 92, 246, 0.16);
-  --accent-ring: rgba(139, 92, 246, 0.45);
-  --glow-1: rgba(124, 58, 237, 0.3);
-  --glow-2: rgba(76, 29, 149, 0.38);
+  --text: #eef3f8;
+  --text-2: #a8b4c3;
+  --text-3: #6b7787;
+  --accent: #2f86e0;
+  --accent-2: #9fd2ff;
+  --accent-soft: rgba(47, 134, 224, 0.16);
+  --accent-ring: rgba(47, 134, 224, 0.45);
+  --glow-1: rgba(47, 134, 224, 0.24);
+  --glow-2: rgba(140, 170, 205, 0.12);
   --danger: #f43f5e;
   --success: #22c55e;
   --warning: #f59e0b;
