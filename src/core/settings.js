@@ -3,7 +3,7 @@ const { readJson, writeJson } = require('./util');
 
 /** Built-in app ids. Both are public identifiers, not secrets. */
 const BUILT_IN = {
-  microsoftClientId: '',
+  microsoftClientId: 'f1918da3-339c-4862-b8a7-4349402ba0f8',
   discordClientId: '',
 };
 

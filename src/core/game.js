@@ -128,7 +128,7 @@ class GameManager extends EventEmitter {
     if (this.running.has(id)) throw new Error('This instance is already running.');
     if (this.preparing.has(id)) throw new Error('This instance is already starting.');
     const inst0 = await this.instances.get(id);
-    const task = this.tasks.create({ title: inst0.name, kind: 'launch' });
+    const task = this.tasks.create({ title: inst0.name, kind: 'launch', ref: id });
     this.preparing.set(id, task);
     this.emit('state', id, 'preparing');
     this.clearLog(id);
@@ -200,7 +200,7 @@ class GameManager extends EventEmitter {
   /** Re-checks every file of an instance against its checksum. */
   async repair(id) {
     const inst = await this.instances.get(id);
-    return this.tasks.run({ title: `Repair ${inst.name}`, kind: 'repair' }, async (task) => {
+    return this.tasks.run({ title: `Repair ${inst.name}`, kind: 'repair', ref: id }, async (task) => {
       await this.instances.update(id, { versionId: null });
       await this.prepare(id, task, { verify: true });
     });

@@ -8,12 +8,13 @@ let nextId = 1;
  * in bytes when known, otherwise in item counts.
  */
 class Task {
-  constructor(manager, { title, kind = 'download', icon = null }) {
+  constructor(manager, { title, kind = 'download', icon = null, ref = null }) {
     this.manager = manager;
     this.id = nextId++;
     this.title = title;
     this.kind = kind;
     this.icon = icon;
+    this.ref = ref;
     this.status = 'running';
     this.stage = 'Starting';
     this.total = 0;
@@ -98,6 +99,7 @@ class Task {
       title: this.title,
       kind: this.kind,
       icon: this.icon,
+      ref: this.ref,
       status: this.status,
       stage: this.stage,
       total: this.total,

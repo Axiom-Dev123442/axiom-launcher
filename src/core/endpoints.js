@@ -19,3 +19,10 @@ module.exports = {
   mojangApi: 'https://api.mojang.com',
   sessionServer: 'https://sessionserver.mojang.com',
 };
+
+// Developer override for testing against local fakes, e.g. OBSIDIAN_DEV_ENDPOINTS='{"modrinth":"http://127.0.0.1:9000"}'
+if (process.env.OBSIDIAN_DEV_ENDPOINTS) {
+  try {
+    Object.assign(module.exports, JSON.parse(process.env.OBSIDIAN_DEV_ENDPOINTS));
+  } catch {}
+}
