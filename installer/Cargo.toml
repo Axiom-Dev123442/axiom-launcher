@@ -1,0 +1,32 @@
+[package]
+name = "obsidian-setup"
+version = "0.1.0"
+edition = "2021"
+description = "Small installer that downloads and installs the Obsidian launcher"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "Obsidian-Setup"
+path = "src/main.rs"
+
+[dependencies]
+eframe = { version = "=0.31.1", default-features = false, features = ["glow", "default_fonts"] }
+ureq = { version = "=2.10.1", default-features = false, features = ["tls"] }
+
+[target.'cfg(windows)'.dependencies]
+rfd = { version = "=0.15.1", default-features = false }
+
+# The Linux build only exists to preview the window during development.
+[target.'cfg(target_os = "linux")'.dependencies]
+eframe = { version = "=0.31.1", default-features = false, features = ["glow", "default_fonts", "x11"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "=0.1.17"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

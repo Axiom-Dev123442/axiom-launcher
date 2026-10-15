@@ -31,17 +31,30 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: installer
       - run: npm ci
 
-      # Tags like v0.2.0 publish a GitHub release with the small web installer.
+      # The small custom installer that people download.
+      - name: Build Obsidian-Setup.exe
+        run: cargo build --release --manifest-path installer/Cargo.toml
+
+      # Tags like v0.2.0 publish a GitHub release: the full installer and update
+      # files from electron-builder, plus the small custom installer.
       - name: Build and publish release
         if: startsWith(github.ref, 'refs/tags/v')
-        run: npx electron-builder --win nsis-web --publish always
+        run: npx electron-builder --win nsis --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Attach custom installer to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: gh release upload "${{ github.ref_name }}" installer/target/release/Obsidian-Setup.exe --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Every other push builds a full offline installer you can download from the run page.
-      - name: Build test installer
+      # Every other push builds the installers so they can be downloaded from the run page.
+      - name: Build full installer
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: npx electron-builder --win nsis --publish never
 
@@ -49,8 +62,7 @@ jobs:
         with:
           name: Obsidian-Windows
           path: |
-            dist/*.exe
-            dist/nsis-web/*.exe
-            dist/nsis-web/*.7z
-          if-no-files-found: ignore
+            installer/target/release/Obsidian-Setup.exe
+            dist/Obsidian-Full-Setup.exe
+          if-no-files-found: error
           retention-days: 14

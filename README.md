@@ -16,7 +16,8 @@ A custom Minecraft launcher for Windows. Play with Microsoft or offline accounts
 - **Discord status**: shows "Playing Minecraft, using Obsidian Launcher" with your version and play time
 - **Themes**: Obsidian, Midnight, Ember, Forest, Nether, The End and Frost, plus custom accent colours
 - **Downloads panel** with progress, speed and cancel buttons
-- **Small web installer**, about 0.25 MB, that downloads the rest of the app, plus automatic updates
+- **Presets**: one click Bedwars, Hypixel SkyBlock and Crystal PvP instances with performance mods, texture packs and tuned settings
+- **Custom installer** with its own look that downloads the latest version, plus automatic updates
 
 | Library | Browse | Skins |
 | --- | --- | --- |
@@ -24,7 +25,9 @@ A custom Minecraft launcher for Windows. Play with Microsoft or offline accounts
 
 ## Install
 
-Download `Obsidian-Setup.exe` from the [latest release](https://github.com/lazentho/obsidian-launcher/releases/latest) and run it. It downloads the rest of Obsidian and adds Start menu and desktop shortcuts. Obsidian updates itself after that.
+Download `Obsidian-Setup.exe` from the [latest release](https://github.com/lazentho/obsidian-launcher/releases/latest) and run it. It downloads the latest Obsidian, installs it with Start menu and desktop shortcuts, and starts it. Obsidian updates itself after that. `Obsidian-Full-Setup.exe` on the same page is the standard offline installer.
+
+![Installer](docs/installer/setup.png)
 
 ## Setup notes
 
@@ -47,8 +50,8 @@ Requires Node.js 22.
 npm install
 npm start          # run the launcher
 npm test           # unit and end-to-end tests
-npm run dist:full  # build a full Windows installer into dist/
-npm run dist       # build the small web installer into dist/nsis-web/
+npm run dist       # build the full Windows installer into dist/
+npm run setup      # build the custom installer (Rust) into installer/target/release/
 npm run icons      # regenerate icons and installer images from the logo
 ```
 
@@ -58,7 +61,7 @@ Building the Windows installer needs Windows (or Wine on Linux). GitHub Actions 
 
 1. Bump `version` in `package.json` (for example `0.2.0`).
 2. Commit, then push a matching tag: `git tag v0.2.0 && git push origin v0.2.0`.
-3. GitHub Actions publishes a release with `Obsidian-Setup.exe` and the app package. Existing installs update themselves.
+3. GitHub Actions publishes a release with `Obsidian-Setup.exe` (custom installer) and `Obsidian-Full-Setup.exe`. Existing installs update themselves.
 
 ### Project layout
 
@@ -67,6 +70,7 @@ src/core/       launcher engine: downloads, Java, loaders, accounts, mods, modpa
 src/main/       Electron main process, preload bridge and auto updater
 src/renderer/   the interface (plain JavaScript modules and CSS, no build step)
 test/           unit tests and end-to-end tests against fake Mojang, Fabric, Forge and CurseForge servers
+installer/      the custom installer (Rust, egui): downloads and silently runs Obsidian-Full-Setup.exe
 scripts/        icon and installer image generator
 ```
 

@@ -90,6 +90,13 @@ app.whenReady().then(async () => {
   fs.writeFileSync(path.join(ROOT, 'build', 'icon.png'), big.toPNG());
   fs.writeFileSync(path.join(ROOT, 'assets', 'icon.png'), big.resize({ width: 256, height: 256, quality: 'best' }).toPNG());
 
+  // Raw 64×64 RGBA for the custom installer's window icon.
+  const small = await render(win, logoAt(64), 64, 64);
+  const bgra = small.toBitmap();
+  for (let i = 0; i < bgra.length; i += 4) [bgra[i], bgra[i + 2]] = [bgra[i + 2], bgra[i]];
+  fs.mkdirSync(path.join(ROOT, 'installer', 'assets'), { recursive: true });
+  fs.writeFileSync(path.join(ROOT, 'installer', 'assets', 'icon64.rgba'), bgra);
+
   const sizes = [16, 24, 32, 48, 64, 128, 256];
   const pngs = [];
   for (const size of sizes) {
