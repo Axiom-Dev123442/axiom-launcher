@@ -202,7 +202,12 @@ const api = {
     // The first time, the game files are downloaded; show that in the downloads panel.
     const textures = (await blockTextures.cached())
       ? await blockTextures.load()
-      : await tasks.run({ title: 'Block icons (Minecraft 1.21.11)', kind: 'download' }, (task) => blockTextures.load({ task }));
+      : await tasks.run({ title: 'Block icons (Minecraft 1.21.11)', kind: 'download' }, async (task) => {
+          const found = await blockTextures.load({ task });
+          // Report a failure in the downloads panel instead of a misleading "Finished".
+          if (!Object.keys(found).length) throw new Error("Couldn't download the Minecraft game files. Obsidian tries again next start.");
+          return found;
+        });
     const out = {};
     for (const [key, buf] of Object.entries(textures)) out[key] = `data:image/png;base64,${buf.toString('base64')}`;
     return out;
