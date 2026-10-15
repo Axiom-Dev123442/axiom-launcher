@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: Publish a GitHub release for the version in package.json
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -40,23 +45,27 @@ jobs:
       - name: Build Obsidian-Setup.exe
         run: cargo build --release --manifest-path installer/Cargo.toml
 
-      # Tags like v0.2.0 publish a GitHub release: the full installer and update
-      # files from electron-builder, plus the small custom installer.
-      - name: Build and publish release
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npx electron-builder --win nsis --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Attach custom installer to the release
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: gh release upload "${{ github.ref_name }}" installer/target/release/Obsidian-Setup.exe --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Every other push builds the installers so they can be downloaded from the run page.
       - name: Build full installer
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: npx electron-builder --win nsis --publish never
+
+      # A v* tag, or running this workflow with "release" ticked, publishes a
+      # GitHub release: both installers plus the files auto update reads.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          ls dist
+          extra=$(ls dist/*.blockmap dist/latest.yml 2>/dev/null || true)
+          gh release create "v$version" \
+            --target "$GITHUB_SHA" \
+            --title "Obsidian $version" \
+            --notes "Download **Obsidian-Setup.exe** and run it. It installs the latest Obsidian and keeps it up to date. Obsidian-Full-Setup.exe is the standard offline installer." \
+            installer/target/release/Obsidian-Setup.exe \
+            dist/Obsidian-Full-Setup.exe \
+            $extra
 
       - uses: actions/upload-artifact@v4
         with:

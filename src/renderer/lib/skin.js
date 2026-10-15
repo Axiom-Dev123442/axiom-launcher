@@ -213,6 +213,20 @@ export function capeView(src) {
   return c;
 }
 
+const liveViewers = new Set();
+
+// Stop drawing 3D characters while the launcher is hidden or minimized (for example while playing).
+document.addEventListener('visibilitychange', () => {
+  for (const v of liveViewers) {
+    if (v.disposed) liveViewers.delete(v);
+    else v.renderPaused = document.hidden;
+  }
+});
+
+export function performanceMode() {
+  return document.documentElement.dataset.perf === 'on';
+}
+
 /**
  * Creates an interactive 3D skin viewer (skinview3d), or null when WebGL or
  * the library is unavailable.
@@ -223,7 +237,8 @@ export function createViewer({ width, height, src, variant = 'classic', cape = n
   const canvas = document.createElement('canvas');
   let viewer;
   try {
-    viewer = new lib.SkinViewer({ canvas, width, height, zoom, enableControls: true, pixelRatio: 'match-device' });
+    viewer = new lib.SkinViewer({ canvas, width, height, zoom, enableControls: true, pixelRatio: performanceMode() ? 1 : 'match-device' });
+    liveViewers.add(viewer);
   } catch {
     return null;
   }

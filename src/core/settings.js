@@ -1,5 +1,15 @@
 'use strict';
+const os = require('node:os');
 const { readJson, writeJson } = require('./util');
+
+/** A sensible default for Minecraft's memory, leaving room for Windows on smaller PCs. */
+function recommendedMemory(total = os.totalmem()) {
+  const gb = total / 1024 ** 3;
+  if (gb <= 6) return 1536;
+  if (gb <= 8) return 2048;
+  if (gb <= 12) return 3072;
+  return 4096;
+}
 
 /** Built-in app ids. Both are public identifiers, not secrets. */
 const BUILT_IN = {
@@ -12,7 +22,8 @@ const DEFAULTS = {
   accent: null,
   animations: true,
   showSnapshots: false,
-  defaultMemory: 4096,
+  defaultMemory: recommendedMemory(),
+  performanceMode: 'auto',
   defaultResolution: { width: 0, height: 0 },
   onLaunch: 'minimize',
   javaPath: '',
@@ -61,4 +72,4 @@ class Settings {
   }
 }
 
-module.exports = { Settings, SETTINGS_DEFAULTS: DEFAULTS, BUILT_IN };
+module.exports = { Settings, SETTINGS_DEFAULTS: DEFAULTS, BUILT_IN, recommendedMemory };

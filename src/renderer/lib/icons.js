@@ -66,7 +66,7 @@ export function icon(name, cls = '') {
   return wrap.firstChild;
 }
 
-/** The Obsidian app icon, in the variant that suits the current theme. */
+/** The Obsidian mark in the variant made for the current theme. */
 export function logoSrc() {
   return document.documentElement.dataset.mode === 'light' ? '../../assets/logo-light.png' : '../../assets/logo.png';
 }

@@ -207,3 +207,36 @@ export async function imageToIcon(src) {
   g.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, 128, 128);
   return { type: 'image', value: c.toDataURL('image/png') };
 }
+
+const blurCache = new Map();
+
+/**
+ * A 4×4 version of an icon. Stretched with smooth scaling it looks like a
+ * heavy blur but costs nothing to draw, which matters on low-end PCs.
+ */
+export function blurSrc(icon) {
+  const src = iconSrc(icon);
+  if (blurCache.has(src)) return Promise.resolve(blurCache.get(src));
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 4;
+      c.height = 4;
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = true;
+      g.drawImage(img, 0, 0, 4, 4);
+      const url = c.toDataURL();
+      blurCache.set(src, url);
+      resolve(url);
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
+/** Sets an element's background to the blurred version of an icon. */
+export function blurBackground(el, icon) {
+  blurSrc(icon).then((url) => (el.style.backgroundImage = `url("${url}")`));
+  return el;
+}

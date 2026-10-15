@@ -1,7 +1,7 @@
-import { h, btn, iconBtn, toggle, searchInput, spinner, paintRange } from '../lib/dom.js';
+import { h, cascade, btn, iconBtn, toggle, searchInput, spinner, paintRange } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { call, onMain, state, refreshInstances, instanceById, pathForFile } from '../lib/store.js';
-import { iconSrc } from '../lib/blocks.js';
+import { blurBackground } from '../lib/blocks.js';
 import { showError, toast, confirmDialog } from '../lib/ui.js';
 import { ago, duration, loaderName } from '../lib/format.js';
 import { pageOn, onLeave, navigate, back, render } from '../router.js';
@@ -40,7 +40,7 @@ export function instancePage(route) {
   el.append(
     h(
       'div.inst-head',
-      h('div.bgimg', { style: `background-image:url("${iconSrc(inst.icon)}")` }),
+      blurBackground(h('div.bgimg'), inst.icon),
       h('button.back', { onclick: () => back() }, icon('chevronLeft'), 'Back'),
       h(
         'div.top',
@@ -70,7 +70,7 @@ function overviewTab(body, inst) {
   const stat = (ic, k, v) => h('div.stat', h('div.k', icon(ic), k), h('div.v', v));
   body.append(
     h(
-      'div.stats-grid',
+      'div.stats-grid.stagger',
       stat('clock', 'Play time', duration(inst.playtime)),
       stat('calendar', 'Last played', ago(inst.lastPlayed)),
       stat('puzzle', 'Mods enabled', modsCount),
@@ -135,7 +135,7 @@ function overviewTab(body, inst) {
   body.append(
     h('div.section-head', h('h2', 'Folders')),
     h(
-      'div.folder-grid',
+      'div.folder-grid.stagger',
       folders.map(([label, sub, ic]) => btn(label, { cls: 'folder-btn', icon: ic, onClick: () => call('app:openFolder', 'instance', inst.id, sub) })),
     ),
   );
@@ -148,7 +148,7 @@ const TYPE_LABEL = { mod: 'mods', resourcepack: 'resource packs', shader: 'shade
 function contentTab(body, inst, type) {
   let items = [];
   let query = '';
-  const list = h('div');
+  const list = cascade(h('div'));
   const updatesSlot = h('div');
 
   const renderList = () => {

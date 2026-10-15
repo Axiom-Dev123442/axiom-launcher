@@ -2,7 +2,7 @@ import { h, btn } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { state, activeAccount } from '../lib/store.js';
 import { iconSrc } from '../lib/blocks.js';
-import { accountSkin, createViewer } from '../lib/skin.js';
+import { accountSkin, createViewer, skinThumbImg, performanceMode } from '../lib/skin.js';
 import { duration, ago, greeting, loaderName } from '../lib/format.js';
 import { pageOn, onLeave, navigate, render } from '../router.js';
 import { instanceIcon, loaderChip, versionChip, playButton, roundPlay, openInstance } from '../components/common.js';
@@ -14,6 +14,11 @@ function heroPlayer(account, onViewer) {
   const tag = h('div.tag', account ? account.name : 'Player');
   wrap.append(tag);
   accountSkin(account).then(({ src, variant }) => {
+    // Low-end PCs get a still render instead of a live 3D scene.
+    if (performanceMode()) {
+      wrap.append(skinThumbImg(src, variant, ''));
+      return;
+    }
     const v = createViewer({ width: 280, height: 360, src, variant, animation: 'idle', zoom: 0.82 });
     if (!v) return;
     wrap.append(v.canvas);
@@ -107,7 +112,7 @@ export function homePage() {
   el.append(
     h('div.section-head', h('h2', 'Your instances'), btn('View all', { cls: 'ghost sm', icon: 'chevronRight', onClick: () => navigate({ page: 'library' }) })),
     h(
-      'div.shelf',
+      'div.shelf.stagger',
       ...others.map((inst) =>
         h(
           'div.tile',

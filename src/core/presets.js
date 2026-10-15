@@ -2,6 +2,7 @@
 const path = require('node:path');
 const fsp = require('node:fs/promises');
 const modrinth = require('./mods/modrinth');
+const os = require('node:os');
 const { compareVersions, exists } = require('./util');
 
 /** Client-side performance mods for Fabric, installed in this order (Fabric API first so others reuse it). */
@@ -147,7 +148,8 @@ async function installPreset(id, { instances, content }, task) {
     icon: { type: 'preset', value: preset.icon },
     mcVersion,
     loader: 'fabric',
-    memory: { min: 1024, max: preset.memory },
+    // Never more than half the PC's memory, so low-end machines stay responsive.
+    memory: { min: 1024, max: Math.min(preset.memory, Math.max(1536, Math.floor(os.totalmem() / 1024 ** 2 / 2 / 512) * 512)) },
     jvmArgs: JVM_ARGS,
     preset: id,
   });

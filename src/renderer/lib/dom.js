@@ -135,3 +135,13 @@ export function paintRange(input) {
   const pct = ((input.value - input.min) / (input.max - input.min)) * 100;
   input.style.setProperty('--fill', `${pct}%`);
 }
+
+/**
+ * Cascades an element's children in when it first appears. The class is
+ * removed afterwards so later re-renders (a toggle, a selection) don't replay it.
+ */
+export function cascade(el) {
+  el.classList.add('stagger');
+  setTimeout(() => el.classList.remove('stagger'), 800);
+  return el;
+}

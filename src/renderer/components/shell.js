@@ -17,12 +17,25 @@ const NAV = [
 ];
 
 export function sidebar() {
-  const nav = h('nav.nav');
+  const pill = h('div.nav-pill', { style: 'opacity:0' });
+  const items = h('div.nav-items');
+  const nav = h('nav.nav', pill, items);
+  // The highlight slides to the active item instead of jumping.
+  const movePill = () => {
+    const active = items.querySelector('.nav-item.active');
+    if (!active) {
+      pill.style.opacity = '0';
+      return;
+    }
+    pill.style.height = `${active.offsetHeight}px`;
+    pill.style.transform = `translateY(${active.offsetTop}px)`;
+    pill.style.opacity = '1';
+  };
   const recent = h('div.side-recent');
   const account = h('div.account-card');
 
   const renderNav = () => {
-    nav.replaceChildren(
+    items.replaceChildren(
       ...NAV.map((n) =>
         h(
           'button.nav-item',
@@ -36,6 +49,7 @@ export function sidebar() {
         ),
       ),
     );
+    requestAnimationFrame(movePill);
   };
 
   const renderRecent = () => {
@@ -83,7 +97,9 @@ export function sidebar() {
   on('game-state', renderRecent);
   on('accounts', renderAccount);
 
-  return h('aside.sidebar', h('div.brand', logo(), h('span.word', 'Obsidian')), nav, recent, account);
+  const aside = h('aside.sidebar.intro', h('div.brand', logo(), h('span.word', 'Obsidian')), nav, recent, account);
+  setTimeout(() => aside.classList.remove('intro'), 900);
+  return aside;
 }
 
 export function titlebar() {

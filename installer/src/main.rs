@@ -49,6 +49,9 @@ struct Progress {
 
 struct App {
     logo: egui::TextureHandle,
+    opened: Instant,
+    page: u8,
+    page_since: Instant,
     progress: Arc<Mutex<Progress>>,
     dir: PathBuf,
     launch_after: bool,
@@ -202,6 +205,17 @@ fn obsidian_texture(painter: &egui::Painter, rect: Rect, pixel: f32) {
     }
 }
 
+/// Ease-out cubic progress for an animation that started `since` and lasts `secs`.
+fn ease(since: Instant, secs: f32) -> f32 {
+    let t = (since.elapsed().as_secs_f32() / secs).clamp(0.0, 1.0);
+    1.0 - (1.0 - t).powi(3)
+}
+
+fn mix(a: Color32, b: Color32, t: f32) -> Color32 {
+    let l = |x: u8, y: u8| (x as f32 + (y as f32 - x as f32) * t).round() as u8;
+    Color32::from_rgba_premultiplied(l(a.r(), b.r()), l(a.g(), b.g()), l(a.b(), b.b()), l(a.a(), b.a()))
+}
+
 fn stroke(width: f32, color: Color32) -> Stroke {
     Stroke::new(width, color)
 }
@@ -218,12 +232,8 @@ fn bold(size: f32) -> FontId {
 fn button(ui: &mut egui::Ui, rect: Rect, label: &str, primary: bool, id: &str) -> bool {
     let resp = ui.interact(rect, ui.id().with(id), Sense::click());
     let hovered = resp.hovered();
-    let fill = match (primary, hovered) {
-        (true, false) => ACCENT,
-        (true, true) => ACCENT_HOVER,
-        (false, false) => SURFACE,
-        (false, true) => SURFACE_HOVER,
-    };
+    let t = ui.ctx().animate_bool_with_time(ui.id().with(id).with("hover"), hovered, 0.15);
+    let fill = if primary { mix(ACCENT, ACCENT_HOVER, t) } else { mix(SURFACE, SURFACE_HOVER, t) };
     let painter = ui.painter();
     painter.rect(rect, CornerRadius::same(6), fill, if primary { Stroke::NONE } else { stroke(1.0, BORDER) }, egui::StrokeKind::Inside);
     painter.text(rect.center(), Align2::CENTER_CENTER, label, bold(14.0), if primary { Color32::WHITE } else { TEXT });
@@ -327,7 +337,7 @@ impl App {
             egui::ColorImage::from_rgba_unmultiplied([160, 160], include_bytes!("../assets/logo160.rgba")),
             egui::TextureOptions::LINEAR,
         );
-        App { logo, progress, dir: default_dir(), launch_after: true, demo }
+        App { logo, opened: Instant::now(), page: 255, page_since: Instant::now(), progress, dir: default_dir(), launch_after: true, demo }
     }
 
     fn start(&mut self) {
@@ -360,16 +370,36 @@ impl eframe::App for App {
             ctx.request_repaint_after(Duration::from_millis(16));
         }
         let time = ctx.input(|i| i.time);
+        // Fade in on open, and slide each new page in.
+        let kind = match phase {
+            Phase::Welcome => 0,
+            Phase::Downloading | Phase::Installing => 1,
+            Phase::Done => 2,
+            Phase::Failed(_) => 3,
+        };
+        if kind != self.page {
+            if self.page != 255 {
+                self.page_since = Instant::now();
+            }
+            self.page = kind;
+        }
+        let intro = ease(self.opened, 0.45);
+        let page_t = ease(self.page_since, 0.35);
+        let check_t = ease(self.page_since, 0.6);
+        if intro < 1.0 || page_t < 1.0 || check_t < 1.0 {
+            ctx.request_repaint();
+        }
 
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(BG)).show(ctx, |ui| {
             let full = ui.max_rect();
+            ui.multiply_opacity(intro);
             let painter = ui.painter().clone();
 
             // Left brand panel
             let side = Rect::from_min_size(full.min, Vec2::new(SIDE, full.height()));
             obsidian_texture(&painter, side, 25.0);
             painter.line_segment([side.right_top(), side.right_bottom()], stroke(1.0, BORDER));
-            let lc = Pos2::new(side.center().x, side.top() + 150.0);
+            let lc = Pos2::new(side.center().x, side.top() + 150.0 + (1.0 - intro) * 10.0);
             let logo_rect = Rect::from_center_size(lc, Vec2::splat(112.0));
             painter.image(self.logo.id(), logo_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
             painter.text(Pos2::new(lc.x, lc.y + 80.0), Align2::CENTER_CENTER, "Obsidian", FontId::new(24.0, FontFamily::Name("display".into())), TEXT);
@@ -405,9 +435,12 @@ impl eframe::App for App {
                 }
             }
 
-            // Content area
-            let x = side.right() + 40.0;
-            let right = full.right() - 40.0;
+            // Content area (slides in from the right when the page changes)
+            ui.multiply_opacity(page_t);
+            let painter = ui.painter().clone();
+            let dx = (1.0 - page_t) * 18.0;
+            let x = side.right() + 40.0 + dx;
+            let right = full.right() - 40.0 + dx;
             let top = full.top() + 74.0;
             let bottom_btn = Rect::from_min_size(Pos2::new(right - 150.0, full.bottom() - 74.0), Vec2::new(150.0, 42.0));
             let second_btn = Rect::from_min_size(Pos2::new(right - 260.0, full.bottom() - 74.0), Vec2::new(98.0, 42.0));
@@ -458,7 +491,11 @@ impl eframe::App for App {
                         TEXT_2,
                     );
                     let bar = Rect::from_min_max(Pos2::new(x, top + 128.0), Pos2::new(right, top + 136.0));
-                    let fraction = if downloading && total > 0 { Some(done as f32 / total as f32) } else { None };
+                    let fraction = if downloading && total > 0 {
+                        Some(ctx.animate_value_with_time(egui::Id::new("progress"), done as f32 / total as f32, 0.3))
+                    } else {
+                        None
+                    };
                     progress_bar(&painter, bar, fraction, time);
                     let left_label = if downloading { format!("{} of {}", mb(done), mb(total)) } else { "Installing…".to_string() };
                     painter.text(Pos2::new(x, top + 150.0), Align2::LEFT_TOP, left_label, bold(13.0), TEXT);
@@ -487,8 +524,13 @@ impl eframe::App for App {
                 Phase::Done => {
                     let c = Pos2::new(x + 22.0, top + 22.0);
                     painter.circle_filled(c, 22.0, Color32::from_rgba_unmultiplied(52, 178, 102, 40));
-                    painter.line_segment([c + Vec2::new(-9.0, 0.5), c + Vec2::new(-2.5, 7.0)], stroke(3.0, SUCCESS));
-                    painter.line_segment([c + Vec2::new(-2.5, 7.0), c + Vec2::new(10.0, -7.0)], stroke(3.0, SUCCESS));
+                    let (a, b, d) = (c + Vec2::new(-9.0, 0.5), c + Vec2::new(-2.5, 7.0), c + Vec2::new(10.0, -7.0));
+                    let first = (check_t / 0.4).min(1.0);
+                    let second = ((check_t - 0.4) / 0.6).clamp(0.0, 1.0);
+                    painter.line_segment([a, a + (b - a) * first], stroke(3.0, SUCCESS));
+                    if second > 0.0 {
+                        painter.line_segment([b, b + (d - b) * second], stroke(3.0, SUCCESS));
+                    }
                     painter.text(Pos2::new(x, top + 64.0), Align2::LEFT_TOP, "Obsidian is ready", FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
                     painter.text(Pos2::new(x, top + 108.0), Align2::LEFT_TOP, "You'll find it in the Start menu and on your desktop.", font(14.0), TEXT_2);
                     painter.text(Pos2::new(x, top + 128.0), Align2::LEFT_TOP, "It keeps itself up to date from now on.", font(14.0), TEXT_2);
@@ -533,8 +575,8 @@ impl eframe::App for App {
 #[cfg(not(windows))]
 fn screenshot(ctx: &egui::Context) {
     let Ok(path) = std::env::var("OBSIDIAN_SETUP_SHOT") else { return };
-    let frame = ctx.cumulative_pass_nr();
-    if frame == 20 {
+    static REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if ctx.input(|i| i.time) > 1.2 && !REQUESTED.swap(true, std::sync::atomic::Ordering::Relaxed) {
         ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
     }
     ctx.request_repaint();

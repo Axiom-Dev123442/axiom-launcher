@@ -1,7 +1,7 @@
 import { h, btn, iconBtn, searchInput, select } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { call, state, refreshInstances } from '../lib/store.js';
-import { iconSrc } from '../lib/blocks.js';
+import { blurBackground } from '../lib/blocks.js';
 import { menu, confirmDialog, promptDialog, showError, toast } from '../lib/ui.js';
 import { ago, duration } from '../lib/format.js';
 import { pageOn } from '../router.js';
@@ -88,7 +88,7 @@ function card(inst, i) {
   const el = h(
     'div.icard',
     { style: `animation-delay:${Math.min(i, 12) * 30}ms`, onclick: () => openInstance(inst.id) },
-    h('div.cover', h('div.bgimg', { style: `background-image:url("${iconSrc(inst.icon)}")` }), instanceIcon(inst), h('div.status', statusDot(inst.id))),
+    h('div.cover', blurBackground(h('div.bgimg'), inst.icon), instanceIcon(inst), h('div.status', statusDot(inst.id))),
     more,
     h(
       'div.body',

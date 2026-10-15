@@ -20,10 +20,20 @@ registerPage('browse', browsePage);
 registerPage('skins', skinsPage);
 registerPage('settings', settingsPage);
 
+/** Performance mode trims costly visuals on low-end PCs (auto, or forced on/off in Settings). */
+export function applyPerformance() {
+  const mode = state.settings.performanceMode || 'auto';
+  const lowEnd = (navigator.hardwareConcurrency || 8) <= 4 || (state.info.totalMemory || 16 * 1024 ** 3) <= 8.5 * 1024 ** 3;
+  const on = mode === 'on' || (mode === 'auto' && lowEnd);
+  document.documentElement.dataset.perf = on ? 'on' : 'off';
+  return on;
+}
+
 async function boot() {
   const [info, settings] = await Promise.all([call('app:info'), refreshSettings()]);
   state.info = info;
   applyTheme(settings.theme, settings.accent, settings.animations);
+  applyPerformance();
   await Promise.all([refreshInstances(), refreshAccounts()]);
   state.tasks = await call('tasks:list');
   try {

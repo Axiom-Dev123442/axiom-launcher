@@ -230,7 +230,7 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
     );
     perfRow.hidden = true;
 
-    const presetsPane = h('div.preset-list', h('div.center', spinner()));
+    const presetsPane = h('div.preset-list.stagger', h('div.center', spinner()));
     call('presets:list').then(
       (list) =>
         presetsPane.replaceChildren(

@@ -1,4 +1,4 @@
-import { h, btn, iconBtn, segmented, select, spinner } from '../lib/dom.js';
+import { h, cascade, btn, iconBtn, segmented, select, spinner } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { call, refreshAccounts, activeAccount } from '../lib/store.js';
 import { showError, toast, promptDialog, confirmDialog, menu } from '../lib/ui.js';
@@ -32,7 +32,7 @@ export function skinsPage() {
   onLeave(() => viewer && viewer.dispose());
 
   const viewerBox = h('div.viewer', h('div.center', spinner('lg')));
-  const grid = h('div.skin-grid');
+  const grid = cascade(h('div.skin-grid'));
   const capes = h('div.cape-row');
   const applyBtn = btn('Apply to account', { cls: 'primary', icon: 'check', disabled: true });
   const variantSeg = h('div');

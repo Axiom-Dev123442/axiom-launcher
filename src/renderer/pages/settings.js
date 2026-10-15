@@ -1,4 +1,4 @@
-import { h, btn, toggle, select, spinner, paintRange } from '../lib/dom.js';
+import { h, cascade, btn, toggle, select, spinner, paintRange } from '../lib/dom.js';
 import { icon, logo } from '../lib/icons.js';
 import { call, state, updateSettings, refreshSettings } from '../lib/store.js';
 import { THEMES, ACCENT_SWATCHES, applyTheme } from '../lib/themes.js';
@@ -47,7 +47,7 @@ function textInput(value, placeholder, onSave, width = 320) {
 
 function appearance() {
   const s = state.settings;
-  const themeGrid = h('div.theme-grid');
+  const themeGrid = cascade(h('div.theme-grid'));
   const renderThemes = () => {
     themeGrid.replaceChildren(
       ...Object.entries(THEMES).map(([id, t]) =>
@@ -161,6 +161,23 @@ function game() {
           ],
           s.onLaunch,
           (v) => save({ onLaunch: v }),
+        ),
+      ),
+      setting(
+        'Performance mode',
+        'Lighter visuals for low-end laptops: no background glow and a still character on Home. Automatic turns it on for PCs with 4 cores or 8 GB of memory or less.',
+        select(
+          [
+            { value: 'auto', label: 'Automatic' },
+            { value: 'on', label: 'On' },
+            { value: 'off', label: 'Off' },
+          ],
+          s.performanceMode || 'auto',
+          async (v) => {
+            await save({ performanceMode: v });
+            const { applyPerformance } = await import('../app.js');
+            applyPerformance();
+          },
         ),
       ),
       setting('Show snapshots', 'Include test versions when picking a Minecraft version.', toggle(s.showSnapshots, (v) => save({ showSnapshots: v }))),
