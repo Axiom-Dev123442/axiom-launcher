@@ -47,7 +47,7 @@ test('browser sign in redeems the code with PKCE and stores the account', async 
   t.after(() => Object.assign(endpoints, saved));
   Object.assign(endpoints, { msLogin: `${base}/ms`, xboxUser: `${base}/xbl`, xsts: `${base}/xsts`, mcServices: `${base}/mc` });
 
-  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'obsidian-auth-'));
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-auth-'));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
   const accounts = new AccountStore(createPaths(root), { getClientId: () => 'client-1' });
 

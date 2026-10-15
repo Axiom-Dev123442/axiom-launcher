@@ -139,8 +139,8 @@ class DiscordPresence {
 /** Builds the activity shown on someone's Discord profile. */
 function buildActivity({ state, instance, startedAt, hideInstance, buttonUrl }) {
   const activity = {
-    details: 'using Obsidian Launcher',
-    assets: { large_image: 'obsidian', large_text: 'Obsidian Launcher' },
+    details: 'using Axiom Launcher',
+    assets: { large_image: 'axiom', large_text: 'Axiom Launcher' },
     instance: false,
   };
   if (state === 'playing' && instance) {
@@ -152,7 +152,7 @@ function buildActivity({ state, instance, startedAt, hideInstance, buttonUrl }) 
   } else {
     activity.state = 'In the launcher';
   }
-  if (buttonUrl) activity.buttons = [{ label: 'Get Obsidian', url: buttonUrl }];
+  if (buttonUrl) activity.buttons = [{ label: 'Get Axiom', url: buttonUrl }];
   return activity;
 }
 

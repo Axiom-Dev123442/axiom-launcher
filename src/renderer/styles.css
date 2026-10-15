@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Obsidian launcher interface
+   Axiom launcher interface
    ========================================================================== */
 
 :root {
@@ -852,6 +852,11 @@ input[type='range']::-webkit-slider-thumb {
   color: #e8d6ae;
   border-color: transparent;
 }
+.chip.quilt {
+  background: rgba(168, 85, 247, 0.16);
+  color: #d4b4fe;
+  border-color: transparent;
+}
 .chip.forge {
   background: rgba(96, 165, 250, 0.14);
   color: #a9c9f5;
@@ -864,6 +869,9 @@ input[type='range']::-webkit-slider-thumb {
 }
 :root[data-mode='light'] .chip.fabric {
   color: #8a6a28;
+}
+:root[data-mode='light'] .chip.quilt {
+  color: #7e22ce;
 }
 :root[data-mode='light'] .chip.forge {
   color: #1d4ed8;
@@ -2528,7 +2536,7 @@ input[type='range']::-webkit-slider-thumb {
 
 .loader-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 .loader-card {

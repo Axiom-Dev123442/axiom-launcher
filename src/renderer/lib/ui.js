@@ -56,7 +56,7 @@ export function toast(title, { message, kind = 'info', actions = [], timeout = 4
 export function showError(err, title = 'Something went wrong') {
   if (!err || err.cancelled || err.name === 'AbortError') return;
   const actions = [];
-  if (err.openUrl) actions.push({ label: 'Open website', primary: true, onClick: () => window.obsidian.call('app:openExternal', err.openUrl) });
+  if (err.openUrl) actions.push({ label: 'Open website', primary: true, onClick: () => window.axiom.call('app:openExternal', err.openUrl) });
   toast(title, { message: err.message || String(err), kind: 'error', actions, timeout: 8000 });
 }
 

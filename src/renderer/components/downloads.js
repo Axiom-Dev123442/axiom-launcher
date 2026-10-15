@@ -5,7 +5,7 @@ import { call, on, state } from '../lib/store.js';
 import { popover } from '../lib/ui.js';
 import { bytes } from '../lib/format.js';
 
-const KIND_ICON = { launch: 'gamepad', mod: 'puzzle', modpack: 'package', repair: 'wrench', download: 'download' };
+const KIND_ICON = { launch: 'gamepad', mod: 'puzzle', modpack: 'package', repair: 'wrench', backup: 'hardDrive', download: 'download' };
 
 function taskRow(t) {
   const running = t.status === 'running';

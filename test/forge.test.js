@@ -50,7 +50,7 @@ function hasJavac() {
 }
 
 test('forge: runs installer processors and launches', { skip: process.platform === 'win32' || !hasJavac() }, async (t) => {
-  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'obsidian-forge-'));
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-forge-'));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
 
   // Compile the processor and pack it as a jar with a Main-Class.

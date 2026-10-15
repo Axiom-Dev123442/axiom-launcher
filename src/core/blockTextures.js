@@ -7,7 +7,7 @@ const { withZip } = require('./zip');
 
 /**
  * Instance icon name → block texture inside the Minecraft client jar.
- * The textures are Mojang's, so they are never shipped with Obsidian; they are
+ * The textures are Mojang's, so they are never shipped with Axiom; they are
  * read from the game files the player downloads.
  */
 const TEXTURES = {

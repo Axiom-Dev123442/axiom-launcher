@@ -1,7 +1,7 @@
 'use strict';
 const path = require('node:path');
 const fsp = require('node:fs/promises');
-const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage, session } = require('electron');
 
 const { createPaths } = require('../core/paths');
 const { TaskManager } = require('../core/tasks');
@@ -17,6 +17,8 @@ const { SkinLibrary, skinByUsername, uploadSkin, resetSkin, setCape, fetchImage,
 const { DiscordPresence, buildActivity } = require('../core/discord');
 const { fabricLoaderVersions } = require('../core/loaders/fabric');
 const { forgeVersions } = require('../core/loaders/forge');
+const { quiltLoaderVersions } = require('../core/loaders/quilt');
+const { WorldManager } = require('../core/worlds');
 const modrinth = require('../core/mods/modrinth');
 const curseforge = require('../core/mods/curseforge');
 const { setupUpdater } = require('./updater');
@@ -24,13 +26,13 @@ const { BlockTextures } = require('../core/blockTextures');
 const presets = require('../core/presets');
 const { safeJoin } = require('../core/util');
 
-const RELEASES_URL = 'https://github.com/lazentho/obsidian-launcher/releases/latest';
+const RELEASES_URL = 'https://github.com/axiomdev/axiom-launcher/releases/latest';
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
-app.setAppUserModelId('dev.lazentho.obsidian');
+app.setAppUserModelId('dev.axiomdev.axiom');
 
 const paths = createPaths();
 const tasks = new TaskManager();
@@ -43,6 +45,7 @@ const modpacks = new ModpackManager({ paths, instances, content });
 const skinLibrary = new SkinLibrary(paths);
 const discord = new DiscordPresence();
 const blockTextures = new BlockTextures(paths, versions);
+const worlds = new WorldManager(instances);
 
 const accounts = new AccountStore(paths, {
   encrypt: (s) =>
@@ -148,8 +151,13 @@ game.on('state', async (id, state) => {
     else if (s.onLaunch === 'hide') win.hide();
   }
 });
+/** The crash report from each instance's last crash, so the interface can open it. */
+const lastCrash = new Map();
+
 game.on('exit', (id, info) => {
-  send('game-exit', id, info);
+  if (info.crashReport) lastCrash.set(id, info.crashReport);
+  else lastCrash.delete(id);
+  send('game-exit', id, { ...info, crashReport: Boolean(info.crashReport) });
   if (win && !win.isDestroyed() && game.running.size === 0) {
     if (!win.isVisible()) win.show();
     if (win.isMinimized() && info.crashed) win.restore();
@@ -193,11 +201,16 @@ async function pickFile(filters, { multi = false, title } = {}) {
 
 const imageCache = new Map();
 async function imageData(url) {
+  // Mojang still hands out some texture links as http; always fetch them over https.
+  url = String(url).replace(/^http:/, 'https:');
   // Only Mojang's own hosts: textures.minecraft.net, mojang.com and its subdomains.
-  if (!/^https:\/\/(textures\.minecraft\.net|([a-z0-9-]+\.)*mojang\.com)\//.test(url.replace(/^http:/, 'https:'))) {
+  if (!/^https:\/\/(textures\.minecraft\.net|([a-z0-9-]+\.)*mojang\.com)\//.test(url)) {
     throw new Error('Unsupported image host');
   }
-  if (!imageCache.has(url)) imageCache.set(url, toDataUrl(await fetchImage(url)));
+  if (!imageCache.has(url)) {
+    if (imageCache.size >= 200) imageCache.delete(imageCache.keys().next().value);
+    imageCache.set(url, toDataUrl(await fetchImage(url)));
+  }
   return imageCache.get(url);
 }
 
@@ -241,6 +254,7 @@ const api = {
   'app:openFolder': async (kind, id, sub) => {
     let dir = paths.root;
     if (kind === 'instance') dir = sub ? safeJoin(instances.gameDir(id), sub) : instances.gameDir(id);
+    if (kind === 'backups') dir = worlds.backupsDir(id);
     await fsp.mkdir(dir, { recursive: true });
     await shell.openPath(dir);
   },
@@ -253,7 +267,7 @@ const api = {
       : await tasks.run({ title: 'Block icons (Minecraft 1.21.11)', kind: 'download' }, async (task) => {
           const found = await blockTextures.load({ task });
           // Report a failure in the downloads panel instead of a misleading "Finished".
-          if (!Object.keys(found).length) throw new Error("Couldn't download the Minecraft game files. Obsidian tries again next start.");
+          if (!Object.keys(found).length) throw new Error("Couldn't download the Minecraft game files. Axiom tries again next start.");
           return found;
         });
     const out = {};
@@ -274,6 +288,7 @@ const api = {
   'versions:list': (snapshots) => vanillaVersions(snapshots),
   'versions:loaders': async (loader, mcVersion) => {
     if (loader === 'fabric') return (await fabricLoaderVersions(mcVersion)).map((v) => ({ id: v.version, label: v.version, stable: v.stable }));
+    if (loader === 'quilt') return (await quiltLoaderVersions(mcVersion)).map((v) => ({ id: v.version, label: v.version, stable: v.stable }));
     if (loader === 'forge') {
       return (await forgeVersions(mcVersion)).map((v) => ({
         id: v.full,
@@ -312,6 +327,21 @@ const api = {
   'game:log': (id) => game.getLog(id),
   'game:clearLog': (id) => game.clearLog(id),
   'game:repair': (id) => game.repair(id),
+  'game:openCrashReport': async (id) => {
+    const file = lastCrash.get(id);
+    if (!file) throw new Error('There is no crash report for this instance.');
+    // Only ever a file inside this instance's crash-reports folder.
+    await shell.openPath(safeJoin(safeJoin(instances.gameDir(id), 'crash-reports'), path.basename(file)));
+  },
+
+  // Worlds and backups
+  'worlds:list': (id) => worlds.list(id),
+  'worlds:backups': (id) => worlds.backups(id),
+  'worlds:backup': async (id, world) => {
+    const inst = await instances.get(id);
+    return tasks.run({ title: `Back up ${world} (${inst.name})`, kind: 'backup', ref: id }, () => worlds.backup(id, world));
+  },
+  'worlds:restore': (id, name) => worlds.restore(id, name),
 
   // Accounts
   'accounts:list': () => accounts.list(),
@@ -475,7 +505,7 @@ function createWindow() {
     frame: false,
     show: false,
     backgroundColor: '#09080d',
-    title: 'Obsidian',
+    title: 'Axiom',
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -512,6 +542,11 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(async () => {
+  // The launcher never needs the camera, microphone, location or notifications from web content.
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  app.on('web-contents-created', (_e, contents) => {
+    contents.on('will-attach-webview', (event) => event.preventDefault());
+  });
   const s = await settings.load();
   curseforge.setApiKey(s.curseforgeKey);
   createWindow();

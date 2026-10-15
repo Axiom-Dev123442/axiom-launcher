@@ -21,7 +21,7 @@ function source(name) {
 function loaderFilter(instance, type) {
   if (type !== 'mod') return undefined;
   if (instance.loader === 'vanilla') {
-    throw new Error('Vanilla instances can’t use mods. Switch this instance to Fabric or Forge first.');
+    throw new Error('Vanilla instances can’t use mods. Switch this instance to Fabric, Quilt or Forge first.');
   }
   return instance.loader;
 }
@@ -160,8 +160,11 @@ class ContentManager {
   /** Copies files the person picked into the instance (drag and drop). */
   async addFiles(id, type, files) {
     const dir = this.folder(id, type);
+    // Only files of the right kind, so a stray drop never lands in the mods folder.
+    const wanted = files.filter((f) => EXTENSIONS[type].some((e) => String(f).toLowerCase().endsWith(e)));
+    if (!wanted.length) throw new Error(`Drop ${EXTENSIONS[type].join(' or ')} files here.`);
     await fsp.mkdir(dir, { recursive: true });
-    for (const f of files) await fsp.copyFile(f, path.join(dir, path.basename(f)));
+    for (const f of wanted) await fsp.copyFile(f, path.join(dir, path.basename(f)));
   }
 
   /**

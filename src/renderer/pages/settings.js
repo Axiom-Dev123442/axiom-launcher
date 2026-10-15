@@ -137,7 +137,10 @@ function appearance() {
 
 function game() {
   const s = state.settings;
-  const mem = h('input', { type: 'range', min: '1024', max: '16384', step: '512', value: String(s.defaultMemory), style: 'width:220px' });
+  // Same limit as the instance page: leave room for Windows on this PC.
+  const totalMb = (state.info.totalMemory || 16 * 1024 ** 3) / 1024 ** 2;
+  const maxAllowed = Math.max(2048, Math.min(32768, Math.floor((totalMb * 0.85) / 512) * 512));
+  const mem = h('input', { type: 'range', min: '1024', max: String(maxAllowed), step: '512', value: String(Math.min(s.defaultMemory, maxAllowed)), style: 'width:220px' });
   const memLabel = h('b', { style: 'width:60px;text-align:right' });
   const show = () => {
     memLabel.textContent = `${(mem.value / 1024).toFixed(1)} GB`;
@@ -215,7 +218,7 @@ function java() {
       'div.card',
       setting(
         'Java for all instances',
-        'Leave empty to let Obsidian download the exact Java each Minecraft version needs.',
+        'Leave empty to let Axiom download the exact Java each Minecraft version needs.',
         h(
           'div.row',
           pathInput,
@@ -258,7 +261,7 @@ function accounts() {
       'div.card',
       setting(
         'Microsoft app ID',
-        'Obsidian has its own app ID built in. Only fill this in if you registered your own app in Azure.',
+        'Axiom has its own app ID built in. Only fill this in if you registered your own app in Azure.',
         textInput(s.microsoftClientId, 'Built in (recommended)', async (v) => {
           await save({ microsoftClientId: v }, false);
           state.info = await call('app:info');
@@ -272,7 +275,7 @@ function accounts() {
         'ol.steps',
         h('li', 'Go to ', h('code', 'entra.microsoft.com'), ' and sign in with any Microsoft account.'),
         h('li', 'Open Applications → App registrations → New registration.'),
-        h('li', 'Name it ', h('code', 'Obsidian Launcher'), ' and choose "Personal Microsoft accounts only".'),
+        h('li', 'Name it ', h('code', 'Axiom Launcher'), ' and choose "Personal Microsoft accounts only".'),
         h('li', 'Redirect URI: pick "Public client/native" and enter ', h('code', 'https://login.microsoftonline.com/common/oauth2/nativeclient'), '.'),
         h('li', 'After registering, open Authentication and turn on "Allow public client flows".'),
         h('li', 'Copy the Application (client) ID from Overview and paste it above.'),
@@ -305,9 +308,9 @@ function discord() {
   return [
     h(
       'div.card',
-      setting('Show status on Discord', 'Shows "Playing Minecraft, using Obsidian Launcher" on your profile.', toggle(d.enabled, (v) => save({ discord: { enabled: v } }))),
+      setting('Show status on Discord', 'Shows "Playing Minecraft, using Axiom Launcher" on your profile.', toggle(d.enabled, (v) => save({ discord: { enabled: v } }))),
       setting('Hide instance name', 'Only show the Minecraft version and loader.', toggle(d.hideInstance, (v) => save({ discord: { hideInstance: v } }))),
-      setting('"Get Obsidian" button', 'Adds a button to your status linking to the download page.', toggle(d.showButton, (v) => save({ discord: { showButton: v } }))),
+      setting('"Get Axiom" button', 'Adds a button to your status linking to the download page.', toggle(d.showButton, (v) => save({ discord: { showButton: v } }))),
       setting(
         'Discord application ID',
         'Create an app named "Minecraft" at discord.com/developers and paste its Application ID.',
@@ -324,7 +327,7 @@ function discord() {
         'div.row',
         { style: 'gap:14px;padding:14px;border-radius:8px;background:#111214;color:#dbdee1' },
         h('div', { style: 'width:64px;height:64px;border-radius:7px;display:grid;place-items:center;background:#1e1f22' }, logo('discord-logo')),
-        h('div', h('div', { style: 'font-weight:700;color:#fff' }, 'Playing Minecraft'), h('div', 'using Obsidian Launcher'), h('div', '1.20.1 Fabric · My Survival World'), h('div', { style: 'color:#949ba4;font-size:12px' }, '00:42 elapsed')),
+        h('div', h('div', { style: 'font-weight:700;color:#fff' }, 'Playing Minecraft'), h('div', 'using Axiom Launcher'), h('div', '1.20.1 Fabric · My Survival World'), h('div', { style: 'color:#949ba4;font-size:12px' }, '00:42 elapsed')),
       ),
     ),
   ];
@@ -354,7 +357,7 @@ function about() {
       h(
         'div.about',
         logo('logo'),
-        h('div.grow', h('h2', 'Obsidian'), h('div.muted', `Version ${state.info.version}`), h('div.small', u)),
+        h('div.grow', h('h2', 'Axiom'), h('div.muted', `Version ${state.info.version}`), h('div.small', u)),
         btn('Check for updates', {
           icon: 'refresh',
           onClick: async () => {
@@ -368,7 +371,7 @@ function about() {
       'div.card',
       setting('Releases', 'Download the installer or see what changed.', btn('Open', { icon: 'external', onClick: () => call('app:openExternal', state.info.releasesUrl) })),
       setting('Auto update', 'Download new versions in the background.', toggle(state.settings.autoUpdate, (v) => save({ autoUpdate: v }))),
-      h('p.small.dim', { style: 'margin:16px 0 0' }, 'Obsidian is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Studios.'),
+      h('p.small.dim', { style: 'margin:16px 0 0' }, 'Axiom is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Studios.'),
     ),
   ];
 }

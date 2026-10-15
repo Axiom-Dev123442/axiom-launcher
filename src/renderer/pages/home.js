@@ -36,7 +36,7 @@ function emptyHero() {
       'div.content',
       { style: 'justify-content:center;align-items:flex-start' },
       h('h1', 'Create your first instance'),
-      h('p.muted', { style: 'margin:0;max-width:520px' }, 'Create an instance with any Minecraft version, add Fabric or Forge for mods, or install a modpack in one click.'),
+      h('p.muted', { style: 'margin:0;max-width:520px' }, 'Create an instance with any Minecraft version, add Fabric, Quilt or Forge for mods, or install a modpack in one click.'),
       h(
         'div.actions',
         btn('New instance', { cls: 'primary lg', icon: 'plus', onClick: () => newInstanceDialog() }),
@@ -101,7 +101,7 @@ export function homePage() {
         'div.actions',
         playButton(featured.id),
         btn('', { cls: 'icon lg', icon: 'settings', title: 'Instance settings', onClick: () => openInstance(featured.id, 'settings') }),
-        btn('', { cls: 'icon lg', icon: 'folder', title: 'Open folder', onClick: () => window.obsidian.call('app:openFolder', 'instance', featured.id) }),
+        btn('', { cls: 'icon lg', icon: 'folder', title: 'Open folder', onClick: () => window.axiom.call('app:openFolder', 'instance', featured.id) }),
       ),
     ),
     heroPlayer(account, (v) => (viewer = v)),

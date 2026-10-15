@@ -14,7 +14,8 @@ const { buildLaunchArgs, splitArgs, quoteArgFile } = require('../src/core/launch
 const { collectLibraries } = require('../src/core/install');
 const { createPaths } = require('../src/core/paths');
 const { encode, buildActivity } = require('../src/core/discord');
-const { loaderFromMrpack, loaderFromCurseforge, loaderFromPrism } = require('../src/core/modpacks');
+const { loaderFromMrpack, loaderFromCurseforge, loaderFromPrism, packDownloadUrl } = require('../src/core/modpacks');
+const { Settings } = require('../src/core/settings');
 const { validateSkin } = require('../src/core/skins');
 const { readModMeta } = require('../src/core/content');
 
@@ -197,7 +198,7 @@ test('discord frames and activity', () => {
   assert.equal(frame.readInt32LE(0), 1);
   assert.equal(frame.readInt32LE(4), 7);
   const a = buildActivity({ state: 'playing', instance: { name: 'Survival', mcVersion: '1.20.1', loader: 'fabric' }, startedAt: 5 });
-  assert.equal(a.details, 'using Obsidian Launcher');
+  assert.equal(a.details, 'using Axiom Launcher');
   assert.equal(a.state, '1.20.1 Fabric · Survival');
   assert.equal(a.timestamps.start, 5);
   const idle = buildActivity({ state: 'idle' });
@@ -237,4 +238,60 @@ test('reads mod names from fabric.mod.json', async () => {
   const meta = await readModMeta(jar);
   assert.equal(meta.title, 'Xaero');
   assert.equal(meta.version, '1.2');
+});
+
+test('modpacks only download from hosts Modrinth allows', () => {
+  assert.equal(packDownloadUrl({ downloads: ['https://cdn.modrinth.com/data/a/b.jar'] }), 'https://cdn.modrinth.com/data/a/b.jar');
+  assert.equal(
+    packDownloadUrl({ downloads: ['https://evil.example/x.jar', 'https://github.com/a/b/releases/download/1/x.jar'] }),
+    'https://github.com/a/b/releases/download/1/x.jar',
+  );
+  assert.equal(packDownloadUrl({ downloads: ['http://cdn.modrinth.com/data/a/b.jar'] }), null);
+  assert.equal(packDownloadUrl({ downloads: ['https://cdn.modrinth.com.evil.example/x.jar'] }), null);
+  assert.equal(packDownloadUrl({ downloads: ['not a url'] }), null);
+  assert.equal(packDownloadUrl({}), null);
+});
+
+test('settings reject values that would break the launcher', async () => {
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-settings-'));
+  const settings = new Settings(createPaths(dir));
+  const s = await settings.update({ concurrency: 100000, animations: 'yes', theme: 7, defaultMemory: 1, discord: 'x', unknown: 1 });
+  assert.equal(s.concurrency, 64);
+  assert.equal(s.animations, true);
+  assert.equal(typeof s.theme, 'string');
+  assert.equal(s.defaultMemory, 512);
+  assert.equal(typeof s.discord, 'object');
+  assert.equal('unknown' in s, false);
+});
+
+test('quilt packs import as quilt instances', () => {
+  assert.deepEqual(loaderFromMrpack({ minecraft: '1.20.1', 'quilt-loader': '0.26.0' }), { mcVersion: '1.20.1', loader: 'quilt', loaderVersion: '0.26.0' });
+  assert.deepEqual(loaderFromMrpack({ minecraft: '1.21.1', neoforge: '21.1.1' }), { unsupported: true });
+  assert.equal(loaderFromPrism({ components: [{ uid: 'net.minecraft', version: '1.20.1' }, { uid: 'org.quiltmc.quilt-loader', version: '0.26.0' }] }).loader, 'quilt');
+});
+
+test('world backups never overwrite the original', async () => {
+  const { InstanceStore } = require('../src/core/instances');
+  const { WorldManager } = require('../src/core/worlds');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-worlds-'));
+  const instances = new InstanceStore(createPaths(root));
+  const worlds = new WorldManager(instances);
+  const inst = await instances.create({ name: 'W', mcVersion: '1.21.1' });
+  const world = path.join(worlds.savesDir(inst.id), 'Survival');
+  await fsp.mkdir(world, { recursive: true });
+  await fsp.writeFile(path.join(world, 'level.dat'), 'v1');
+  await fsp.writeFile(path.join(world, 'session.lock'), 'lock');
+
+  assert.equal((await worlds.list(inst.id))[0].folder, 'Survival');
+  const b = await worlds.backup(inst.id, 'Survival');
+  assert.equal(await fsp.readFile(path.join(worlds.backupsDir(inst.id), b.name, 'level.dat'), 'utf8'), 'v1');
+  await assert.rejects(fsp.access(path.join(worlds.backupsDir(inst.id), b.name, 'session.lock')));
+
+  await fsp.writeFile(path.join(world, 'level.dat'), 'v2');
+  const r = await worlds.restore(inst.id, b.name);
+  assert.equal(r.folder, 'Survival (restored)');
+  assert.equal(await fsp.readFile(path.join(world, 'level.dat'), 'utf8'), 'v2');
+  assert.equal(await fsp.readFile(path.join(worlds.savesDir(inst.id), r.folder, 'level.dat'), 'utf8'), 'v1');
+  assert.equal((await worlds.list(inst.id)).find((w) => w.folder === 'Survival').backups, 1);
+  await assert.rejects(() => worlds.backup(inst.id, '../../escape'));
 });

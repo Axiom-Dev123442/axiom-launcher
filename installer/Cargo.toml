@@ -1,13 +1,13 @@
 [package]
-name = "obsidian-setup"
-version = "1.0.2"
+name = "axiom-setup"
+version = "1.1.0"
 edition = "2021"
-description = "Small installer that downloads and installs the Obsidian launcher"
+description = "Small installer that downloads and installs the Axiom launcher"
 license = "MIT"
 publish = false
 
 [[bin]]
-name = "Obsidian-Setup"
+name = "Axiom-Setup"
 path = "src/main.rs"
 
 [dependencies]

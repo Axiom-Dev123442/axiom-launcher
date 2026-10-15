@@ -97,7 +97,7 @@ export function sidebar() {
   on('game-state', renderRecent);
   on('accounts', renderAccount);
 
-  const aside = h('aside.sidebar.intro', h('div.brand', logo(), h('span.word', 'Obsidian')), nav, recent, account);
+  const aside = h('aside.sidebar.intro', h('div.brand', logo(), h('span.word', 'Axiom')), nav, recent, account);
   setTimeout(() => aside.classList.remove('intro'), 900);
   return aside;
 }

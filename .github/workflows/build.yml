@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
 
       # The small custom installer that people download.
-      - name: Build Obsidian-Setup.exe
+      - name: Build Axiom-Setup.exe
         run: cargo build --release --manifest-path installer/Cargo.toml
 
       - name: Build full installer
@@ -61,17 +61,17 @@ jobs:
           extra=$(ls dist/*.blockmap dist/latest.yml 2>/dev/null || true)
           gh release create "v$version" \
             --target "$GITHUB_SHA" \
-            --title "Obsidian $version" \
-            --notes "Download **Obsidian-Setup.exe** and run it. It installs the latest Obsidian and keeps it up to date. Obsidian-Full-Setup.exe is the standard offline installer." \
-            installer/target/release/Obsidian-Setup.exe \
-            dist/Obsidian-Full-Setup.exe \
+            --title "Axiom $version" \
+            --notes "Download **Axiom-Setup.exe** and run it. It installs the latest Axiom and keeps it up to date. Axiom-Full-Setup.exe is the standard offline installer." \
+            installer/target/release/Axiom-Setup.exe \
+            dist/Axiom-Full-Setup.exe \
             $extra
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Obsidian-Windows
+          name: Axiom-Windows
           path: |
-            installer/target/release/Obsidian-Setup.exe
-            dist/Obsidian-Full-Setup.exe
+            installer/target/release/Axiom-Setup.exe
+            dist/Axiom-Full-Setup.exe
           if-no-files-found: error
           retention-days: 14

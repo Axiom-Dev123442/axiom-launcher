@@ -8,6 +8,7 @@ module.exports = {
   resources: 'https://resources.download.minecraft.net',
   libraries: 'https://libraries.minecraft.net/',
   fabricMeta: 'https://meta.fabricmc.net/v2',
+  quiltMeta: 'https://meta.quiltmc.org/v3',
   forgeMaven: 'https://maven.minecraftforge.net',
   forgePromotions: 'https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json',
   modrinth: 'https://api.modrinth.com/v2',
@@ -18,11 +19,14 @@ module.exports = {
   mcServices: 'https://api.minecraftservices.com',
   mojangApi: 'https://api.mojang.com',
   sessionServer: 'https://sessionserver.mojang.com',
+  /** The only hosts a .mrpack may download files from (the list in Modrinth's pack format spec). */
+  packHosts: ['cdn.modrinth.com', 'github.com', 'raw.githubusercontent.com', 'gitlab.com'],
 };
 
-// Developer override for testing against local fakes, e.g. OBSIDIAN_DEV_ENDPOINTS='{"modrinth":"http://127.0.0.1:9000"}'
-if (process.env.OBSIDIAN_DEV_ENDPOINTS) {
+// Developer override for testing against local fakes, e.g. AXIOM_DEV_ENDPOINTS='{"modrinth":"http://127.0.0.1:9000"}'
+const override = process.env.AXIOM_DEV_ENDPOINTS;
+if (override) {
   try {
-    Object.assign(module.exports, JSON.parse(process.env.OBSIDIAN_DEV_ENDPOINTS));
+    Object.assign(module.exports, JSON.parse(override));
   } catch {}
 }

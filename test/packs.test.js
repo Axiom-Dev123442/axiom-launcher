@@ -50,7 +50,7 @@ test('curseforge and prism imports', async (t) => {
   endpoints.curseforge = `${base}/cf`;
   curseforge.setApiKey('test-key');
 
-  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'obsidian-packs-'));
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-packs-'));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
   const paths = createPaths(path.join(root, 'data'));
   const tasks = new TaskManager();
@@ -128,6 +128,6 @@ test('curseforge and prism imports', async (t) => {
     createZip([{ name: 'modrinth.index.json', data: JSON.stringify({ name: 'Neo', files: [], dependencies: { minecraft: '1.21.1', neoforge: '21.1.1' } }) }]),
   );
   const before = (await instances.list()).length;
-  await assert.rejects(() => tasks.run({ title: 'neo' }, (task) => modpacks.importFile(neo, task)), /only Fabric and Forge/);
+  await assert.rejects(() => tasks.run({ title: 'neo' }, (task) => modpacks.importFile(neo, task)), /only Fabric, Quilt and Forge/);
   assert.equal((await instances.list()).length, before);
 });

@@ -38,7 +38,7 @@ export function ago(ts) {
 }
 
 export function loaderName(l) {
-  return { vanilla: 'Vanilla', fabric: 'Fabric', forge: 'Forge' }[l] || l;
+  return { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge' }[l] || l;
 }
 
 export function greeting() {

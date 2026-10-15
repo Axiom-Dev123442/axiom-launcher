@@ -29,6 +29,14 @@ function javaBinary(home, { console = false } = {}) {
   return path.join(home, 'bin', 'java');
 }
 
+const MARKER = '.axiom-runtime.json';
+/** Written by versions released as Obsidian; still read so their Java is not downloaded again. */
+const LEGACY_MARKER = '.obsidian-runtime.json';
+
+async function readMarker(home) {
+  return (await readJson(path.join(home, MARKER), null)) || readJson(path.join(home, LEGACY_MARKER), null);
+}
+
 class JavaService {
   constructor(paths) {
     this.paths = paths;
@@ -50,8 +58,8 @@ class JavaService {
    */
   async ensureRuntime(component, task, { console: wantConsole = false } = {}) {
     const home = this.runtimeHome(component);
-    const marker = path.join(home, '.obsidian-runtime.json');
-    const installed = await readJson(marker, null);
+    const marker = path.join(home, MARKER);
+    const installed = await readMarker(home);
 
     let index;
     try {
@@ -134,7 +142,7 @@ class JavaService {
     try {
       const out = [];
       for (const name of await fsp.readdir(this.paths.runtimes)) {
-        const info = await readJson(path.join(this.runtimeHome(name), '.obsidian-runtime.json'), null);
+        const info = await readMarker(this.runtimeHome(name));
         if (info) out.push(info);
       }
       return out;

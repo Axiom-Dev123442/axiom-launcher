@@ -7,7 +7,7 @@ const { once } = require('node:events');
 const { sha1File } = require('./util');
 const pkg = require('../../package.json');
 
-const USER_AGENT = `lazentho/obsidian-launcher/${pkg.version} (github.com/lazentho/obsidian-launcher)`;
+const USER_AGENT = `axiomdev/axiom-launcher/${pkg.version} (github.com/axiomdev/axiom-launcher)`;
 
 class HttpError extends Error {
   constructor(status, url, body) {
@@ -33,23 +33,44 @@ const sleep = (ms, signal) =>
     }
   });
 
+/** How long to wait for a server to start answering, and for the next bytes of a download. */
+const CONNECT_TIMEOUT = 30 * 1000;
+const STALL_TIMEOUT = 45 * 1000;
+
+function timeoutError(url) {
+  return Object.assign(new Error(`The server took too long to answer: ${url}`), { name: 'TimeoutError' });
+}
+
+/** Combines the caller's signal (cancel) with an internal one (timeouts). */
+function combine(signal, internal) {
+  return signal ? AbortSignal.any([signal, internal]) : internal;
+}
+
 function isRetryable(err) {
   if (err.name === 'AbortError') return false;
   if (err instanceof HttpError) return err.status === 429 || err.status >= 500;
   return true;
 }
 
-/** fetch() with a user agent, retries for transient failures and HttpError on bad status. */
+/** fetch() with a user agent, a connect timeout, retries for transient failures and HttpError on bad status. */
 async function request(url, opts = {}) {
-  const { retries = 3, signal, headers = {}, ...rest } = opts;
+  const { retries = 3, signal, headers = {}, timeout = CONNECT_TIMEOUT, ...rest } = opts;
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, {
-        ...rest,
-        signal,
-        headers: { 'User-Agent': USER_AGENT, ...headers },
-      });
+      // A server that accepts the connection but never answers would otherwise hang forever.
+      const connect = new AbortController();
+      const timer = setTimeout(() => connect.abort(timeoutError(url)), timeout);
+      let res;
+      try {
+        res = await fetch(url, {
+          ...rest,
+          signal: combine(signal, connect.signal),
+          headers: { 'User-Agent': USER_AGENT, ...headers },
+        });
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         throw new HttpError(res.status, url, body);
@@ -100,8 +121,16 @@ async function downloadFile(url, dest, { sha1, signal, onBytes, retries = 3 } = 
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     let received = 0;
+    // Aborts a download that stops sending data, so it is retried instead of hanging forever.
+    const stall = new AbortController();
+    let stallTimer = null;
+    const touch = () => {
+      clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => stall.abort(timeoutError(url)), STALL_TIMEOUT);
+    };
     try {
-      const res = await request(url, { signal, retries: 0 });
+      touch();
+      const res = await request(url, { signal: combine(signal, stall.signal), retries: 0 });
       const hash = crypto.createHash('sha1');
       const out = fs.createWriteStream(tmp);
       // A write error (disk full, file locked) must fail the download, not crash the app or hang it.
@@ -112,6 +141,7 @@ async function downloadFile(url, dest, { sha1, signal, onBytes, retries = 3 } = 
       try {
         for await (const chunk of res.body) {
           if (writeError) throw writeError;
+          touch();
           hash.update(chunk);
           received += chunk.length;
           if (onBytes) onBytes(chunk.length);
@@ -127,12 +157,16 @@ async function downloadFile(url, dest, { sha1, signal, onBytes, retries = 3 } = 
       }
       await fsp.rename(tmp, dest);
       return;
-    } catch (err) {
+    } catch (caught) {
+      // A stalled body can surface as a plain abort; report it as the timeout it is, so it is retried.
+      const err = stall.signal.aborted && !(signal && signal.aborted) ? stall.signal.reason : caught;
       lastErr = err;
       await fsp.rm(tmp, { force: true });
       if (onBytes && received) onBytes(-received);
       if (!isRetryable(err) || attempt === retries) throw err;
       await sleep(500 * 2 ** attempt, signal);
+    } finally {
+      clearTimeout(stallTimer);
     }
   }
   throw lastErr;

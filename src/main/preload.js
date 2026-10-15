@@ -11,7 +11,7 @@ async function call(method, ...args) {
 
 const EVENTS = ['tasks', 'game-state', 'game-log', 'game-exit', 'login-code', 'update-status', 'window-state'];
 
-contextBridge.exposeInMainWorld('obsidian', {
+contextBridge.exposeInMainWorld('axiom', {
   call,
   on(event, fn) {
     if (!EVENTS.includes(event)) throw new Error(`Unknown event ${event}`);

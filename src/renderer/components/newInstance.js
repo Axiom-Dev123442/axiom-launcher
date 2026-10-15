@@ -5,10 +5,12 @@ import { call, state, refreshInstances, pathForFile } from '../lib/store.js';
 import { modal, showError, toast } from '../lib/ui.js';
 import { BLOCK_NAMES, blockIcon, imageToIcon } from '../lib/blocks.js';
 import { navigate } from '../router.js';
+import { loaderName } from '../lib/format.js';
 
 const LOADERS = [
   { id: 'vanilla', name: 'Vanilla', desc: 'The game as Mojang made it' },
   { id: 'fabric', name: 'Fabric', desc: 'Lightweight, great for performance mods' },
+  { id: 'quilt', name: 'Quilt', desc: 'Fabric-compatible, with extra features' },
   { id: 'forge', name: 'Forge', desc: 'The classic loader for big mods' },
 ];
 
@@ -160,7 +162,7 @@ export function loaderVersionSelect(getState, onPick) {
       const list = await call('versions:loaders', loader, mcVersion);
       if (my !== token) return;
       if (!list.length) {
-        el.replaceChildren(h('option', { value: '' }, `${loader === 'fabric' ? 'Fabric' : 'Forge'} isn't available for ${mcVersion}`));
+        el.replaceChildren(h('option', { value: '' }, `${loaderName(loader)} isn't available for ${mcVersion}`));
         el.disabled = true;
         return;
       }
@@ -327,7 +329,7 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
         createBtn.disabled = true;
         try {
           const inst = await call('instances:create', {
-            name: form.name.trim() || `${form.loader === 'vanilla' ? 'Minecraft' : form.loader === 'fabric' ? 'Fabric' : 'Forge'} ${form.mcVersion}`,
+            name: form.name.trim() || `${form.loader === 'vanilla' ? 'Minecraft' : loaderName(form.loader)} ${form.mcVersion}`,
             icon: form.icon,
             mcVersion: form.mcVersion,
             loader: form.loader,
@@ -336,7 +338,7 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
           await refreshInstances();
           close(inst);
           navigate({ page: 'instance', id: inst.id });
-          toast(`${inst.name} created`, { kind: 'success', message: 'Press Play and Obsidian downloads everything it needs.' });
+          toast(`${inst.name} created`, { kind: 'success', message: 'Press Play and Axiom downloads everything it needs.' });
           if (form.loader === 'fabric' && performance) {
             call('presets:performance', inst.id).catch((err) => showError(err, 'Couldn’t add performance mods'));
           }

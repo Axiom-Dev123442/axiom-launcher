@@ -1,7 +1,7 @@
 /** Theme definitions. Every colour in the interface comes from these tokens. */
 export const THEMES = {
-  obsidian: {
-    name: 'Obsidian',
+  axiom: {
+    name: 'Axiom',
     dark: true,
     bg: '#09080e',
     elev: 'rgba(20, 16, 31, 0.72)',
@@ -158,7 +158,7 @@ function rgba(hex, a) {
 
 /** Applies a theme (and optional custom accent) to the document. */
 export function applyTheme(name, accent, animations = true) {
-  const t = THEMES[name] || THEMES.obsidian;
+  const t = THEMES[name] || THEMES.axiom;
   const root = document.documentElement;
   const a = accent && /^#[0-9a-f]{6}$/i.test(accent) ? accent : t.accent;
   let a2 = t.accent2;

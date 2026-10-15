@@ -5,13 +5,18 @@ const { getJson, postJson } = require('../http');
 const PROJECT_TYPES = { mod: 'mod', resourcepack: 'resourcepack', shader: 'shader', modpack: 'modpack' };
 const SORTS = { relevance: 'relevance', downloads: 'downloads', updated: 'updated', newest: 'newest', follows: 'follows' };
 
+/** Quilt runs almost every Fabric mod, so Quilt instances can use both. */
+function compatibleLoaders(loader) {
+  return loader === 'quilt' ? ['quilt', 'fabric'] : [loader];
+}
+
 function api(p, opts) {
   return getJson(`${endpoints.modrinth}${p}`, opts);
 }
 
 async function search({ query = '', type = 'mod', loader, gameVersion, sort = 'relevance', offset = 0, limit = 20 }) {
   const facets = [[`project_type:${PROJECT_TYPES[type] || 'mod'}`]];
-  if (loader && (type === 'mod' || type === 'modpack')) facets.push([`categories:${loader}`]);
+  if (loader && (type === 'mod' || type === 'modpack')) facets.push(compatibleLoaders(loader).map((l) => `categories:${l}`));
   if (gameVersion) facets.push([`versions:${gameVersion}`]);
   const params = new URLSearchParams({
     query,
@@ -88,7 +93,7 @@ function mapVersion(v) {
 
 async function versions(id, { loader, gameVersion } = {}) {
   const params = new URLSearchParams();
-  if (loader) params.set('loaders', JSON.stringify([loader]));
+  if (loader) params.set('loaders', JSON.stringify(compatibleLoaders(loader)));
   if (gameVersion) params.set('game_versions', JSON.stringify([gameVersion]));
   const list = await api(`/project/${encodeURIComponent(id)}/version?${params}`);
   return list.map(mapVersion);

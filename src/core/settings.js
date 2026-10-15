@@ -18,7 +18,7 @@ const BUILT_IN = {
 };
 
 const DEFAULTS = {
-  theme: 'obsidian',
+  theme: 'axiom',
   accent: null,
   animations: true,
   showSnapshots: false,
@@ -35,6 +35,18 @@ const DEFAULTS = {
   autoUpdate: true,
 };
 
+const clamp = (n, min, max) => Math.min(max, Math.max(min, Math.round(n)));
+
+/** Checks a changed setting, returning undefined for a value that would break something. */
+function clean(key, value) {
+  const def = DEFAULTS[key];
+  if (key === 'concurrency') return Number.isFinite(value) ? clamp(value, 1, 64) : undefined;
+  if (key === 'defaultMemory') return Number.isFinite(value) ? clamp(value, 512, Math.floor(os.totalmem() / 1024 ** 2)) : undefined;
+  if (key === 'discord') return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined;
+  if (typeof def === 'boolean' || typeof def === 'string') return typeof value === typeof def ? value : undefined;
+  return value;
+}
+
 class Settings {
   constructor(paths) {
     this.file = paths.settingsFile;
@@ -46,6 +58,8 @@ class Settings {
     if (!this._loading) {
       this._loading = readJson(this.file, {}).then((saved) => {
         this.data = { ...DEFAULTS, ...saved, discord: { ...DEFAULTS.discord, ...(saved.discord || {}) } };
+        // The default theme was called "obsidian" before the launcher became Axiom.
+        if (this.data.theme === 'obsidian') this.data.theme = 'axiom';
       });
     }
     await this._loading;
@@ -58,8 +72,10 @@ class Settings {
 
   async update(changes) {
     const d = await this.load();
-    for (const [k, v] of Object.entries(changes)) {
+    for (const [k, raw] of Object.entries(changes)) {
       if (!(k in DEFAULTS)) continue;
+      const v = clean(k, raw);
+      if (v === undefined) continue;
       d[k] = k === 'discord' ? { ...d.discord, ...v } : v;
     }
     await writeJson(this.file, d);

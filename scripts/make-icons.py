@@ -106,19 +106,19 @@ def main():
     (ROOT / "installer" / "assets" / "logo160.rgba").write_bytes(dark_tile(160).tobytes())
 
     # Discord art: the mark on a light tile so it reads in Discord's dark UI.
-    dark_tile(1024).save(assets / "discord" / "obsidian.png")
+    dark_tile(1024).save(assets / "discord" / "axiom.png")
 
     # NSIS images for the standard full installer.
     side = Image.new("RGBA", (164, 314), (246, 246, 249, 255))
     side.alpha_composite(dark_tile(96), (34, 70))
     draw = ImageDraw.Draw(side)
-    draw.text((82, 196), "Obsidian", font=font(20), fill=(20, 18, 26), anchor="mm")
+    draw.text((82, 196), "Axiom", font=font(20), fill=(20, 18, 26), anchor="mm")
     draw.text((82, 220), "Minecraft launcher", font=font(11, bold=False), fill=(110, 106, 124), anchor="mm")
     side.convert("RGB").save(build / "installerSidebar.bmp", "BMP")
 
     header = Image.new("RGBA", (150, 57), (255, 255, 255, 255))
     header.alpha_composite(dark_tile(44), (100, 6))
-    ImageDraw.Draw(header).text((92, 28), "Obsidian", font=font(13), fill=(24, 22, 30), anchor="rm")
+    ImageDraw.Draw(header).text((92, 28), "Axiom", font=font(13), fill=(24, 22, 30), anchor="rm")
     header.convert("RGB").save(build / "installerHeader.bmp", "BMP")
     print("icons written")
 

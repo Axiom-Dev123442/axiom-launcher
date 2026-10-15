@@ -58,7 +58,7 @@ test('preset installs available mods, skips missing ones and tunes settings', as
   t.after(() => Object.assign(endpoints, saved));
   endpoints.modrinth = `${base}/mr`;
 
-  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'obsidian-presets-'));
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-presets-'));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
   const paths = createPaths(path.join(root, 'data'));
   const tasks = new TaskManager();

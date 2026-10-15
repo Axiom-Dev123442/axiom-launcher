@@ -39,9 +39,10 @@ test('install, fabric, modpack import and launch', { skip: process.platform === 
     resources: `${base}/resources`,
     libraries: `${base}/libs/`,
     fabricMeta: `${base}/fabric`,
+    packHosts: [new URL(base).host],
   });
 
-  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'obsidian-it-'));
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-it-'));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
   const paths = createPaths(root);
   const tasks = new TaskManager();

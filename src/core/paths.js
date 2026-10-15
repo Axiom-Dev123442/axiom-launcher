@@ -1,15 +1,37 @@
 'use strict';
+const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
-function defaultRoot() {
-  if (process.env.OBSIDIAN_HOME) return process.env.OBSIDIAN_HOME;
-  const base =
+function dataBase() {
+  return (
     process.env.APPDATA ||
     (process.platform === 'darwin'
       ? path.join(os.homedir(), 'Library', 'Application Support')
-      : path.join(os.homedir(), '.local', 'share'));
-  return path.join(base, '.obsidian');
+      : path.join(os.homedir(), '.local', 'share'))
+  );
+}
+
+/**
+ * The launcher's data folder. Earlier versions were called Obsidian and kept
+ * everything in .obsidian; that folder is moved to .axiom the first time, so
+ * instances, accounts and downloads carry over.
+ */
+function defaultRoot() {
+  const custom = process.env.AXIOM_HOME || process.env.OBSIDIAN_HOME;
+  if (custom) return custom;
+  const base = dataBase();
+  const root = path.join(base, '.axiom');
+  const legacy = path.join(base, '.obsidian');
+  if (!fs.existsSync(root) && fs.existsSync(path.join(legacy, 'settings.json'))) {
+    try {
+      fs.renameSync(legacy, root);
+    } catch {
+      // Something still holds a file in it (the old launcher is open); keep using it this time.
+      return legacy;
+    }
+  }
+  return root;
 }
 
 /** All on-disk locations used by the launcher, derived from one root folder. */

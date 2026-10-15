@@ -1,6 +1,6 @@
 /** Shared app state, the bridge to the main process, and a tiny event bus. */
 
-const bridge = window.obsidian;
+const bridge = window.axiom;
 
 export function call(method, ...args) {
   return bridge.call(method, ...args);

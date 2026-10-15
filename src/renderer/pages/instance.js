@@ -3,7 +3,7 @@ import { icon } from '../lib/icons.js';
 import { call, onMain, state, refreshInstances, instanceById, pathForFile } from '../lib/store.js';
 import { blurBackground } from '../lib/blocks.js';
 import { showError, toast, confirmDialog } from '../lib/ui.js';
-import { ago, duration, loaderName } from '../lib/format.js';
+import { ago, bytes, duration, loaderName } from '../lib/format.js';
 import { pageOn, onLeave, navigate, back, render } from '../router.js';
 import { instanceIcon, loaderChip, versionChip, playButton } from '../components/common.js';
 import { iconPicker, versionPicker, loaderVersionSelect } from '../components/newInstance.js';
@@ -14,6 +14,7 @@ const TABS = [
   { id: 'mods', label: 'Mods', icon: 'puzzle', type: 'mod' },
   { id: 'resourcepacks', label: 'Resource packs', icon: 'image', type: 'resourcepack' },
   { id: 'shaders', label: 'Shaders', icon: 'sparkles', type: 'shader' },
+  { id: 'worlds', label: 'Worlds', icon: 'layers' },
   { id: 'console', label: 'Console', icon: 'terminal' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
@@ -57,6 +58,7 @@ export function instancePage(route) {
   const t = TABS.find((x) => x.id === tab) || TABS[0];
   if (t.id === 'overview') overviewTab(body, inst);
   else if (t.type) contentTab(body, inst, t.type);
+  else if (t.id === 'worlds') worldsTab(body, inst);
   else if (t.id === 'console') consoleTab(body, inst);
   else settingsTab(body, inst);
   return { el };
@@ -160,7 +162,7 @@ function contentTab(body, inst, type) {
           'div.empty',
           h('div.art', icon(type === 'mod' ? 'puzzle' : type === 'shader' ? 'sparkles' : 'image')),
           h('h2', noMods ? 'Vanilla can’t use mods' : `No ${TYPE_LABEL[type]} yet`),
-          h('p', noMods ? 'Change this instance to Fabric or Forge in Settings to add mods.' : `Find ${TYPE_LABEL[type]} in Browse, or drop files here.`),
+          h('p', noMods ? 'Change this instance to Fabric, Quilt or Forge in Settings to add mods.' : `Find ${TYPE_LABEL[type]} in Browse, or drop files here.`),
           noMods
             ? btn('Open settings', { icon: 'settings', onClick: () => navigate({ page: 'instance', id: inst.id, tab: 'settings' }, { replace: true }) })
             : btn(`Browse ${TYPE_LABEL[type]}`, { cls: 'primary', icon: 'compass', onClick: () => navigate({ page: 'browse', type, instance: inst.id }) }),
@@ -192,7 +194,11 @@ function contentTab(body, inst, type) {
               onClick: async () => {
                 const ok = await confirmDialog({ title: `Remove ${m.title}?`, message: 'The file is deleted from this instance.', confirm: 'Remove', danger: true });
                 if (!ok) return;
-                await call('content:remove', inst.id, type, m.file);
+                try {
+                  await call('content:remove', inst.id, type, m.file);
+                } catch (err) {
+                  showError(err, `Couldn't remove ${m.title}`);
+                }
                 load();
               },
             }),
@@ -307,6 +313,107 @@ function contentTab(body, inst, type) {
   })());
 }
 
+/* ---------- Worlds ---------- */
+
+function worldsTab(body, inst) {
+  const list = cascade(h('div'));
+  const backupsBox = h('div');
+
+  const restoreButton = (b) =>
+    btn('Restore', {
+      cls: 'sm',
+      icon: 'rotate',
+      onClick: async () => {
+        const ok = await confirmDialog({
+          title: `Restore ${b.world}?`,
+          message: 'The backup is added as a new world next to your current one, so nothing is overwritten.',
+          confirm: 'Restore',
+        });
+        if (!ok) return;
+        try {
+          const r = await call('worlds:restore', inst.id, b.name);
+          toast('World restored', { kind: 'success', message: `Saved as “${r.folder}”.` });
+          load();
+        } catch (err) {
+          showError(err, 'Restore failed');
+        }
+      },
+    });
+
+  const load = async () => {
+    let worlds;
+    let backups;
+    try {
+      [worlds, backups] = await Promise.all([call('worlds:list', inst.id), call('worlds:backups', inst.id)]);
+    } catch (err) {
+      list.replaceChildren(h('div.dim', err.message));
+      return;
+    }
+    if (!worlds.length) {
+      list.replaceChildren(
+        h('div.empty', h('div.art', icon('layers')), h('h2', 'No worlds yet'), h('p', 'Worlds you create in this instance show up here, ready to back up.'), playButton(inst.id)),
+      );
+    } else {
+      list.replaceChildren(
+        h(
+          'div.list',
+          worlds.map((w) => {
+            const backupBtn = btn('Back up', { cls: 'sm', icon: 'copy' });
+            backupBtn.addEventListener('click', async () => {
+              backupBtn.disabled = true;
+              try {
+                await call('worlds:backup', inst.id, w.folder);
+                toast(`Backed up ${w.folder}`, { kind: 'success' });
+                load();
+              } catch (err) {
+                showError(err, 'Backup failed');
+                backupBtn.disabled = false;
+              }
+            });
+            return h(
+              'div.list-row',
+              w.icon ? h('img.ii', { src: w.icon, alt: '' }) : h('div.ii', { style: 'display:grid;place-items:center;color:var(--text-3)' }, icon('layers')),
+              h(
+                'div.meta',
+                h('div.t', w.folder),
+                h('div.s', [`Played ${/ago|now|Yesterday/.test(ago(w.lastPlayed)) ? ago(w.lastPlayed).toLowerCase() : ago(w.lastPlayed)}`, bytes(w.size), w.backups ? `${w.backups} backup${w.backups === 1 ? '' : 's'}` : 'No backups'].join(' · ')),
+              ),
+              iconBtn('folder', { title: 'Open world folder', onClick: () => call('app:openFolder', 'instance', inst.id, `saves/${w.folder}`) }),
+              backupBtn,
+            );
+          }),
+        ),
+      );
+    }
+    backupsBox.replaceChildren(
+      backups.length
+        ? h(
+            'div',
+            h('div.section-head', h('h2', 'Backups'), btn('Open backups folder', { cls: 'sm', icon: 'folder', onClick: () => call('app:openFolder', 'backups', inst.id) })),
+            h(
+              'div.list',
+              backups.slice(0, 30).map((b) =>
+                h('div.list-row', h('div.ii', { style: 'display:grid;place-items:center;color:var(--text-3)' }, icon('hardDrive')), h('div.meta', h('div.t', b.world), h('div.s', ago(b.createdAt))), restoreButton(b)),
+              ),
+            ),
+          )
+        : null,
+    );
+  };
+
+  body.append(
+    h(
+      'div.toolbar',
+      h('div.grow.muted.small', 'Back up a world before updating mods or the Minecraft version. Backups are kept outside the game folder.'),
+      btn('Open saves folder', { icon: 'folder', onClick: () => call('app:openFolder', 'instance', inst.id, 'saves') }),
+    ),
+    list,
+    backupsBox,
+  );
+  list.append(h('div.center', spinner()));
+  load();
+}
+
 /* ---------- Console ---------- */
 
 function classify(entry) {
@@ -398,7 +505,7 @@ function settingsTab(body, inst) {
   const lv = loaderVersionSelect(() => form, (v) => (form.loaderVersion = v));
   const loaderSel = h(
     'select.select',
-    ['vanilla', 'fabric', 'forge'].map((l) => h('option', { value: l, selected: l === inst.loader }, loaderName(l))),
+    ['vanilla', 'fabric', 'quilt', 'forge'].map((l) => h('option', { value: l, selected: l === inst.loader }, loaderName(l))),
   );
   loaderSel.addEventListener('change', () => {
     form.loader = loaderSel.value;
@@ -462,7 +569,7 @@ function settingsTab(body, inst) {
               showError(err);
             }
           },
-        })), h('div.hint', 'Leave empty and Obsidian downloads the right Java automatically.')),
+        })), h('div.hint', 'Leave empty and Axiom downloads the right Java automatically.')),
         h('div.field', { style: 'margin:0' }, h('label', 'Java arguments'), jvm),
       ),
     ),

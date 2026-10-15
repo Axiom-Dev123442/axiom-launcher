@@ -154,6 +154,7 @@ export function libraryPage() {
           { value: 'all', label: 'All loaders' },
           { value: 'vanilla', label: 'Vanilla' },
           { value: 'fabric', label: 'Fabric' },
+          { value: 'quilt', label: 'Quilt' },
           { value: 'forge', label: 'Forge' },
         ],
         filter,

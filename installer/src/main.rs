@@ -1,6 +1,6 @@
-//! Obsidian Setup: a small custom installer. It downloads the full Obsidian
+//! Axiom Setup: a small custom installer. It downloads the full Axiom
 //! installer from the latest GitHub release, runs it silently into the folder
-//! the person picked, and then starts Obsidian.
+//! the person picked, and then starts Axiom.
 
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
@@ -15,12 +15,12 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const DOWNLOAD_URL: &str =
-    "https://github.com/lazentho/obsidian-launcher/releases/latest/download/Obsidian-Full-Setup.exe";
+    "https://github.com/axiomdev/axiom-launcher/releases/latest/download/Axiom-Full-Setup.exe";
 const WIDTH: f32 = 680.0;
 const HEIGHT: f32 = 420.0;
 const SIDE: f32 = 250.0;
 
-// Palette, matching the launcher's Obsidian theme.
+// Palette, matching the launcher's Axiom theme.
 const BG: Color32 = Color32::from_rgb(12, 11, 18);
 const SURFACE: Color32 = Color32::from_rgb(22, 20, 31);
 const SURFACE_HOVER: Color32 = Color32::from_rgb(30, 27, 42);
@@ -64,11 +64,11 @@ fn default_dir() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| std::env::temp_dir());
-    base.join("Programs").join("Obsidian")
+    base.join("Programs").join("Axiom")
 }
 
 fn installed(dir: &PathBuf) -> bool {
-    dir.join("Obsidian.exe").exists()
+    dir.join("Axiom.exe").exists()
 }
 
 fn mb(bytes: u64) -> String {
@@ -152,7 +152,7 @@ fn fresh_temp_dir() -> Result<PathBuf, String> {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    let dir = std::env::temp_dir().join(format!("obsidian-setup-{}-{stamp}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("axiom-setup-{}-{stamp}", std::process::id()));
     std::fs::create_dir(&dir).map_err(|e| format!("Couldn't prepare the download folder: {e}"))?;
     Ok(dir)
 }
@@ -169,14 +169,14 @@ fn run_installer(setup: &PathBuf, dir: &PathBuf) -> Result<(), String> {
         return Err(format!("The installer stopped with code {}.", status.code().unwrap_or(-1)));
     }
     if !installed(dir) {
-        return Err("Obsidian wasn't found after installing. Please try again.".into());
+        return Err("Axiom wasn't found after installing. Please try again.".into());
     }
     Ok(())
 }
 
 #[cfg(not(windows))]
 fn run_installer(_setup: &PathBuf, _dir: &PathBuf) -> Result<(), String> {
-    Err("Obsidian Setup only installs on Windows.".into())
+    Err("Axiom Setup only installs on Windows.".into())
 }
 
 fn install(p: Arc<Mutex<Progress>>, dir: PathBuf, demo: bool) {
@@ -195,10 +195,10 @@ fn install(p: Arc<Mutex<Progress>>, dir: PathBuf, demo: bool) {
             std::thread::sleep(Duration::from_millis(1800));
             return Ok(());
         }
-        let url = std::env::var("OBSIDIAN_SETUP_URL").unwrap_or_else(|_| DOWNLOAD_URL.to_string());
+        let url = std::env::var("AXIOM_SETUP_URL").unwrap_or_else(|_| DOWNLOAD_URL.to_string());
         let expected = expected_sha512(&url)?;
         let tmp = fresh_temp_dir()?;
-        let setup = tmp.join("Obsidian-Full-Setup.exe");
+        let setup = tmp.join("Axiom-Full-Setup.exe");
         let r = download(&p, &url, &setup).and_then(|actual| {
             if actual != expected {
                 return Err("The download didn't match the release's checksum, so it wasn't run. \
@@ -218,7 +218,7 @@ fn install(p: Arc<Mutex<Progress>>, dir: PathBuf, demo: bool) {
 }
 
 fn launch(dir: &PathBuf) {
-    let _ = std::process::Command::new(dir.join("Obsidian.exe")).spawn();
+    let _ = std::process::Command::new(dir.join("Axiom.exe")).spawn();
 }
 
 /* ---------- Drawing helpers ---------- */
@@ -373,8 +373,8 @@ fn load_fonts(ctx: &egui::Context) {
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         load_fonts(&cc.egui_ctx);
-        let demo = std::env::var("OBSIDIAN_SETUP_DEMO").is_ok();
-        let phase = match std::env::var("OBSIDIAN_SETUP_PAGE").as_deref() {
+        let demo = std::env::var("AXIOM_SETUP_DEMO").is_ok();
+        let phase = match std::env::var("AXIOM_SETUP_PAGE").as_deref() {
             Ok("installing") => Phase::Downloading,
             Ok("done") => Phase::Done,
             Ok("failed") => Phase::Failed("Couldn't reach GitHub. Check your internet connection.".into()),
@@ -399,8 +399,8 @@ impl App {
     #[cfg(windows)]
     fn pick_folder(&mut self) {
         if let Some(folder) = rfd::FileDialog::new().set_directory(&self.dir).pick_folder() {
-            let ends_with_obsidian = folder.file_name().map(|n| n.eq_ignore_ascii_case("Obsidian")).unwrap_or(false);
-            self.dir = if ends_with_obsidian { folder } else { folder.join("Obsidian") };
+            let ends_with_axiom = folder.file_name().map(|n| n.eq_ignore_ascii_case("Axiom")).unwrap_or(false);
+            self.dir = if ends_with_axiom { folder } else { folder.join("Axiom") };
         }
     }
 
@@ -451,7 +451,7 @@ impl eframe::App for App {
             let lc = Pos2::new(side.center().x, side.top() + 150.0 + (1.0 - intro) * 10.0);
             let logo_rect = Rect::from_center_size(lc, Vec2::splat(112.0));
             painter.image(self.logo.id(), logo_rect, Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)), Color32::WHITE);
-            painter.text(Pos2::new(lc.x, lc.y + 80.0), Align2::CENTER_CENTER, "Obsidian", FontId::new(24.0, FontFamily::Name("display".into())), TEXT);
+            painter.text(Pos2::new(lc.x, lc.y + 80.0), Align2::CENTER_CENTER, "Axiom", FontId::new(24.0, FontFamily::Name("display".into())), TEXT);
             painter.text(Pos2::new(lc.x, lc.y + 106.0), Align2::CENTER_CENTER, "Minecraft launcher", font(13.0), TEXT_2);
             painter.text(Pos2::new(side.left() + 20.0, side.bottom() - 22.0), Align2::LEFT_CENTER, format!("Setup {}", env!("CARGO_PKG_VERSION")), font(11.5), TEXT_3);
 
@@ -497,9 +497,9 @@ impl eframe::App for App {
             match phase {
                 Phase::Welcome => {
                     let update = installed(&self.dir);
-                    painter.text(Pos2::new(x, top), Align2::LEFT_TOP, if update { "Update Obsidian" } else { "Install Obsidian" }, FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
+                    painter.text(Pos2::new(x, top), Align2::LEFT_TOP, if update { "Update Axiom" } else { "Install Axiom" }, FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
                     painter.text(Pos2::new(x, top + 44.0), Align2::LEFT_TOP, "Setup downloads about 85 MB from GitHub", font(14.0), TEXT_2);
-                    painter.text(Pos2::new(x, top + 64.0), Align2::LEFT_TOP, "and adds Obsidian to your Start menu.", font(14.0), TEXT_2);
+                    painter.text(Pos2::new(x, top + 64.0), Align2::LEFT_TOP, "and adds Axiom to your Start menu.", font(14.0), TEXT_2);
 
                     painter.text(Pos2::new(x, top + 112.0), Align2::LEFT_TOP, "Install location", bold(12.5), TEXT_3);
                     let field = Rect::from_min_max(Pos2::new(x, top + 134.0), Pos2::new(right - 92.0, top + 172.0));
@@ -516,7 +516,7 @@ impl eframe::App for App {
                         self.pick_folder();
                     }
 
-                    checkbox(ui, Pos2::new(x, top + 194.0), "Start Obsidian when it's installed", &mut self.launch_after, "launch");
+                    checkbox(ui, Pos2::new(x, top + 194.0), "Start Axiom when it's installed", &mut self.launch_after, "launch");
 
                     if button(ui, bottom_btn, if update { "Update" } else { "Install" }, true, "install") {
                         self.start();
@@ -531,7 +531,7 @@ impl eframe::App for App {
                         (g.done, g.total, g.speed)
                     };
                     let downloading = phase == Phase::Downloading;
-                    painter.text(Pos2::new(x, top), Align2::LEFT_TOP, "Installing Obsidian", FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
+                    painter.text(Pos2::new(x, top), Align2::LEFT_TOP, "Installing Axiom", FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
                     painter.text(
                         Pos2::new(x, top + 44.0),
                         Align2::LEFT_TOP,
@@ -580,10 +580,10 @@ impl eframe::App for App {
                     if second > 0.0 {
                         painter.line_segment([b, b + (d - b) * second], stroke(3.0, SUCCESS));
                     }
-                    painter.text(Pos2::new(x, top + 64.0), Align2::LEFT_TOP, "Obsidian is ready", FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
+                    painter.text(Pos2::new(x, top + 64.0), Align2::LEFT_TOP, "Axiom is ready", FontId::new(28.0, FontFamily::Name("display".into())), TEXT);
                     painter.text(Pos2::new(x, top + 108.0), Align2::LEFT_TOP, "You'll find it in the Start menu and on your desktop.", font(14.0), TEXT_2);
                     painter.text(Pos2::new(x, top + 128.0), Align2::LEFT_TOP, "It keeps itself up to date from now on.", font(14.0), TEXT_2);
-                    if button(ui, bottom_btn, "Launch Obsidian", true, "launch-now") {
+                    if button(ui, bottom_btn, "Launch Axiom", true, "launch-now") {
                         launch(&self.dir);
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
@@ -591,7 +591,7 @@ impl eframe::App for App {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                     // Starting automatically when that box was ticked.
-                    if self.launch_after && !self.demo && std::env::var("OBSIDIAN_SETUP_PAGE").is_err() {
+                    if self.launch_after && !self.demo && std::env::var("AXIOM_SETUP_PAGE").is_err() {
                         self.launch_after = false;
                         launch(&self.dir);
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -615,7 +615,7 @@ impl eframe::App for App {
             }
         });
 
-        // Development aid: OBSIDIAN_SETUP_SHOT=path writes a screenshot (raw RGBA) and exits.
+        // Development aid: AXIOM_SETUP_SHOT=path writes a screenshot (raw RGBA) and exits.
         #[cfg(not(windows))]
         screenshot(ctx);
     }
@@ -623,7 +623,7 @@ impl eframe::App for App {
 
 #[cfg(not(windows))]
 fn screenshot(ctx: &egui::Context) {
-    let Ok(path) = std::env::var("OBSIDIAN_SETUP_SHOT") else { return };
+    let Ok(path) = std::env::var("AXIOM_SETUP_SHOT") else { return };
     static REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     if ctx.input(|i| i.time) > 1.2 && !REQUESTED.swap(true, std::sync::atomic::Ordering::Relaxed) {
         ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
@@ -649,7 +649,7 @@ fn main() -> eframe::Result<()> {
     let icon = egui::IconData { rgba: include_bytes!("../assets/icon64.rgba").to_vec(), width: 64, height: 64 };
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Obsidian Setup")
+            .with_title("Axiom Setup")
             .with_inner_size([WIDTH, HEIGHT])
             .with_resizable(false)
             .with_decorations(false)
@@ -657,5 +657,5 @@ fn main() -> eframe::Result<()> {
         centered: true,
         ..Default::default()
     };
-    eframe::run_native("Obsidian Setup", options, Box::new(|cc| Ok(Box::new(App::new(cc)))))
+    eframe::run_native("Axiom Setup", options, Box::new(|cc| Ok(Box::new(App::new(cc)))))
 }

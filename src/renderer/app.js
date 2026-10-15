@@ -69,9 +69,12 @@ async function boot() {
     if (info.crashed) {
       toast(`${inst ? inst.name : 'Minecraft'} crashed`, {
         kind: 'error',
-        message: `Exit code ${info.code}. The console has the details.`,
-        actions: [{ label: 'View console', primary: true, onClick: () => navigate({ page: 'instance', id, tab: 'console' }) }],
-        timeout: 10000,
+        message: info.crashReport ? `Exit code ${info.code}. Minecraft wrote a crash report.` : `Exit code ${info.code}. The console has the details.`,
+        actions: [
+          info.crashReport ? { label: 'Open crash report', primary: true, onClick: () => call('game:openCrashReport', id).catch((err) => showError(err)) } : null,
+          { label: 'View console', primary: !info.crashReport, onClick: () => navigate({ page: 'instance', id, tab: 'console' }) },
+        ].filter(Boolean),
+        timeout: 15000,
       });
     }
   });
@@ -79,7 +82,7 @@ async function boot() {
     state.update = st;
     emit('update');
     if (st.state === 'ready') {
-      toast(`Obsidian ${st.version} is ready`, {
+      toast(`Axiom ${st.version} is ready`, {
         message: 'Restart to finish updating.',
         actions: [{ label: 'Restart now', primary: true, onClick: () => call('updates:install') }],
         timeout: 0,
@@ -97,7 +100,7 @@ async function boot() {
     if (!f || !/\.(mrpack|zip)$/i.test(f.name)) return;
     const { afterImport } = await import('./components/newInstance.js');
     try {
-      const r = await call('modpacks:import', window.obsidian.pathForFile(f));
+      const r = await call('modpacks:import', window.axiom.pathForFile(f));
       if (r) {
         await refreshInstances();
         afterImport(r);
@@ -109,5 +112,5 @@ async function boot() {
 }
 
 boot().catch((err) => {
-  document.getElementById('app').replaceChildren(h('div.center', { style: 'grid-column:1/-1;grid-row:1/-1' }, h('div', h('h2', 'Obsidian failed to start'), h('p.muted', err.message))));
+  document.getElementById('app').replaceChildren(h('div.center', { style: 'grid-column:1/-1;grid-row:1/-1' }, h('div', h('h2', 'Axiom failed to start'), h('p.muted', err.message))));
 });

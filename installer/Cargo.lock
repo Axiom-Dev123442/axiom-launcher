@@ -1667,8 +1667,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "obsidian-setup"
-version = "1.0.2"
+name = "axiom-setup"
+version = "1.1.0"
 dependencies = [
  "eframe",
  "rfd",

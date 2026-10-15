@@ -66,7 +66,7 @@ export function icon(name, cls = '') {
   return wrap.firstChild;
 }
 
-/** The Obsidian mark in the variant made for the current theme. */
+/** The Axiom mark in the variant made for the current theme. */
 export function logoSrc() {
   return document.documentElement.dataset.mode === 'light' ? '../../assets/logo-light.png' : '../../assets/logo.png';
 }
@@ -75,13 +75,13 @@ export function logo(cls = '') {
   const img = document.createElement('img');
   img.src = logoSrc();
   img.dataset.logo = '1';
-  img.alt = 'Obsidian';
+  img.alt = 'Axiom';
   img.className = cls;
   img.draggable = false;
   return img;
 }
 
-/** Simple loader marks for Vanilla, Fabric and Forge. */
+/** Simple loader marks for Vanilla, Fabric, Quilt and Forge. */
 export function loaderIcon(name) {
   const wrap = document.createElement('span');
   const marks = {
@@ -89,6 +89,8 @@ export function loaderIcon(name) {
       '<svg viewBox="0 0 24 24"><path d="M4 7 12 3l8 4v10l-8 4-8-4Z" fill="#5fa84a"/><path d="M4 7l8 4 8-4-8-4Z" fill="#7ccf5f"/><path d="M12 11v10l-8-4V7Z" fill="#8b5a2b"/><path d="M12 11v10l8-4V7Z" fill="#6e4520"/><path d="M4 7l8 4v2L4 9Z" fill="#5fa84a"/><path d="M20 7l-8 4v2l8-4Z" fill="#4b8a39"/></svg>',
     fabric:
       '<svg viewBox="0 0 24 24"><path d="M13 2 22 11 11 22 2 13Z" fill="#dbd0b4"/><path d="M13 2 22 11 18 15 9 6Z" fill="#c6b98f"/><path d="M8 13l3 3M10 11l3 3M12 9l3 3" stroke="#38342a" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    quilt:
+      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2" fill="#9722ff"/><rect x="13" y="3" width="8" height="8" rx="2" fill="#dc29dd"/><rect x="3" y="13" width="8" height="8" rx="2" fill="#27a2fd"/><rect x="13" y="13" width="8" height="8" rx="2" fill="#7d5fff"/></svg>',
     forge:
       '<svg viewBox="0 0 24 24"><path d="M3 8h13c0 2 1.5 3 4 3v2h-6l-1 3 2 3H7l2-3-1-3c-3 0-5-2-5-5Z" fill="#6e86a6"/><path d="M3 8h13c0 2 1.5 3 4 3v1H8C5 12 3 10.5 3 8Z" fill="#9db2cf"/></svg>',
   };

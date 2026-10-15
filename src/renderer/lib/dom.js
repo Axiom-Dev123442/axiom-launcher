@@ -5,11 +5,11 @@ import { icon } from './icons.js';
 for (const name of ['append', 'prepend', 'replaceChildren', 'before', 'after']) {
   for (const proto of [Element.prototype, DocumentFragment.prototype]) {
     const original = proto[name];
-    if (!original || original.__obsidian) continue;
+    if (!original || original.__axiom) continue;
     const patched = function (...nodes) {
       return original.apply(this, nodes.filter((n) => n != null && n !== false && n !== true));
     };
-    patched.__obsidian = true;
+    patched.__axiom = true;
     proto[name] = patched;
   }
 }

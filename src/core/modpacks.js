@@ -7,8 +7,35 @@ const { downloadAll, downloadFile } = require('./http');
 const { withZip, createZip } = require('./zip');
 const { safeJoin, exists } = require('./util');
 const { FOLDERS } = require('./content');
+const endpoints = require('./endpoints');
 
-const UNSUPPORTED = 'uses a mod loader Obsidian does not support yet (only Fabric and Forge are supported).';
+const UNSUPPORTED = 'uses a mod loader Axiom does not support yet (only Fabric, Quilt and Forge are supported).';
+
+/**
+ * The first download link of a pack file on a host Modrinth allows. A pack from
+ * an unknown source must not make the launcher fetch arbitrary URLs.
+ */
+function packDownloadUrl(f) {
+  for (const url of f.downloads || []) {
+    let u;
+    try {
+      u = new URL(url);
+    } catch {
+      continue;
+    }
+    const secure = u.protocol === 'https:' || (u.protocol === 'http:' && u.hostname === '127.0.0.1');
+    if (secure && endpoints.packHosts.includes(u.host)) return url;
+  }
+  return null;
+}
+
+/** The file a pack version downloads, or an error a person can act on. */
+function packFile(version, title) {
+  const file = version.files.find((f) => f.primary) || version.files[0];
+  if (!file) throw new Error(`${title} has no downloadable file.`);
+  if (!file.url) throw new Error(`${title} can only be downloaded from the CurseForge website.`);
+  return file;
+}
 
 /** Works out what kind of pack a zip is. */
 function detectPack(zip) {
@@ -28,7 +55,8 @@ function loaderFromMrpack(deps) {
   const mcVersion = deps.minecraft;
   if (deps['fabric-loader']) return { mcVersion, loader: 'fabric', loaderVersion: deps['fabric-loader'] };
   if (deps.forge) return { mcVersion, loader: 'forge', loaderVersion: forgeFull(mcVersion, deps.forge) };
-  if (deps.neoforge || deps['quilt-loader']) return { unsupported: true };
+  if (deps['quilt-loader']) return { mcVersion, loader: 'quilt', loaderVersion: deps['quilt-loader'] };
+  if (deps.neoforge) return { unsupported: true };
   return { mcVersion, loader: 'vanilla', loaderVersion: null };
 }
 
@@ -39,7 +67,7 @@ function loaderFromCurseforge(manifest) {
   const [kind, ...rest] = primary.split('-');
   const version = rest.join('-');
   if (!primary) return { mcVersion, loader: 'vanilla', loaderVersion: null };
-  if (kind === 'fabric') return { mcVersion, loader: 'fabric', loaderVersion: version };
+  if (kind === 'fabric' || kind === 'quilt') return { mcVersion, loader: kind, loaderVersion: version };
   if (kind === 'forge') return { mcVersion, loader: 'forge', loaderVersion: forgeFull(mcVersion, version) };
   return { unsupported: true };
 }
@@ -48,7 +76,7 @@ const PRISM_UIDS = {
   'net.fabricmc.fabric-loader': 'fabric',
   'net.minecraftforge': 'forge',
   'net.neoforged': null,
-  'org.quiltmc.quilt-loader': null,
+  'org.quiltmc.quilt-loader': 'quilt',
 };
 
 function loaderFromPrism(pack) {
@@ -138,8 +166,7 @@ class ModpackManager {
       version = list.find((v) => v.type === 'release') || list[0];
     }
     if (!version) throw new Error(`${project.title} has no versions to install.`);
-    const file = version.files.find((f) => f.primary) || version.files[0];
-    if (!file.url) throw new Error(`${project.title} can only be downloaded from the CurseForge website.`);
+    const file = packFile(version, project.title);
 
     task.reset(`Downloading ${project.title}`);
     const local = path.join(this.paths.cache, 'packs', `${source}-${version.id}${source === 'curseforge' ? '.zip' : '.mrpack'}`);
@@ -184,12 +211,14 @@ class ModpackManager {
     for (const f of index.files || []) {
       if (f.env && f.env.client === 'unsupported') continue;
       const target = safeJoin(gameDir, f.path);
-      items.push({ url: f.downloads[0], path: target, sha1: f.hashes && f.hashes.sha1, size: f.fileSize });
+      const url = packDownloadUrl(f);
+      if (!url) throw new Error(`This pack downloads ${path.basename(f.path)} from a site Modrinth packs may not use, so Axiom won't install it.`);
+      items.push({ url, path: target, sha1: f.hashes && f.hashes.sha1, size: f.fileSize });
       files.push(f.path);
       entries[f.path.replace(/\\/g, '/')] = {
         source: 'modrinth-pack',
         title: path.basename(f.path).replace(/\.(jar|zip)$/i, ''),
-        url: f.downloads[0],
+        url,
         sha1: f.hashes && f.hashes.sha1,
         sha512: f.hashes && f.hashes.sha512,
         size: f.fileSize,
@@ -283,9 +312,12 @@ class ModpackManager {
   async update(instanceId, versionId, task) {
     const inst = await this.instances.get(instanceId);
     const mp = inst.modpack;
+    if (!mp || !mp.projectId || (mp.source !== 'modrinth' && mp.source !== 'curseforge')) {
+      throw new Error('This instance was not installed from Modrinth or CurseForge, so it cannot be updated here.');
+    }
     const api = mp.source === 'curseforge' ? curseforge : modrinth;
     const version = mp.source === 'curseforge' ? await api.version(versionId, mp.projectId) : await api.version(versionId);
-    const file = version.files.find((f) => f.primary) || version.files[0];
+    const file = packFile(version, mp.name);
     const local = path.join(this.paths.cache, 'packs', `${mp.source}-${version.id}${mp.source === 'curseforge' ? '.zip' : '.mrpack'}`);
     task.reset(`Downloading ${mp.name} ${version.versionNumber}`);
     task.addTotal(file.size || 0);
@@ -369,6 +401,7 @@ class ModpackManager {
     const dependencies = { minecraft: inst.mcVersion };
     const lv = inst.installedLoaderVersion || inst.loaderVersion;
     if (inst.loader === 'fabric') dependencies['fabric-loader'] = lv;
+    if (inst.loader === 'quilt') dependencies['quilt-loader'] = lv;
     if (inst.loader === 'forge') dependencies.forge = String(lv).replace(`${inst.mcVersion}-`, '');
 
     const manifest = {
@@ -386,4 +419,4 @@ class ModpackManager {
   }
 }
 
-module.exports = { ModpackManager, detectPack, loaderFromMrpack, loaderFromCurseforge, loaderFromPrism };
+module.exports = { ModpackManager, detectPack, loaderFromMrpack, loaderFromCurseforge, loaderFromPrism, packDownloadUrl };
