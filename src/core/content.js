@@ -4,7 +4,7 @@ const fsp = require('node:fs/promises');
 const modrinth = require('./mods/modrinth');
 const curseforge = require('./mods/curseforge');
 const { downloadFile } = require('./http');
-const { readJson, writeJson, safeJoin } = require('./util');
+const { readJson, writeJson, safeJoin, withLock, lockKey } = require('./util');
 const { withZip } = require('./zip');
 
 const FOLDERS = { mod: 'mods', resourcepack: 'resourcepacks', shader: 'shaderpacks' };
@@ -90,6 +90,17 @@ class ContentManager {
     await writeJson(this.indexFile(id), index);
   }
 
+  /** Reads, changes and saves the index as one step, so parallel installs never lose entries. */
+  async updateIndex(id, change) {
+    const file = this.indexFile(id);
+    return withLock(lockKey(file), async () => {
+      const index = await readJson(file, {});
+      const result = await change(index);
+      await writeJson(file, index);
+      return result;
+    });
+  }
+
   folder(id, type) {
     const f = FOLDERS[type];
     if (!f) throw new Error(`Unknown content type ${type}`);
@@ -141,9 +152,9 @@ class ContentManager {
     const target = safeJoin(dir, file);
     await fsp.rm(target, { recursive: true, force: true });
     await fsp.rm(`${target}.disabled`, { recursive: true, force: true });
-    const index = await this.readIndex(id);
-    delete index[`${FOLDERS[type]}/${file}`];
-    await this.writeIndex(id, index);
+    await this.updateIndex(id, (index) => {
+      delete index[`${FOLDERS[type]}/${file}`];
+    });
   }
 
   /** Copies files the person picked into the instance (drag and drop). */
@@ -193,7 +204,6 @@ class ContentManager {
       if (e.projectId === projectId && e.source === src && key.startsWith(`${folderName}/`)) {
         const old = key.slice(folderName.length + 1);
         if (old !== file.filename) await this.remove(instanceId, type, old);
-        delete index[key];
       }
     }
 
@@ -207,21 +217,21 @@ class ContentManager {
       onBytes: (n) => task.addDone(n),
     });
 
-    const fresh = await this.readIndex(instanceId);
-    fresh[`${folderName}/${file.filename}`] = {
-      source: src,
-      projectId,
-      versionId: version.id,
-      versionNumber: version.versionNumber,
-      title,
-      description: info ? info.description : '',
-      icon: info ? info.icon : null,
-      url: file.url,
-      sha1: file.sha1 || null,
-      sha512: file.sha512 || null,
-      size: file.size || null,
-    };
-    await this.writeIndex(instanceId, fresh);
+    await this.updateIndex(instanceId, (fresh) => {
+      fresh[`${folderName}/${file.filename}`] = {
+        source: src,
+        projectId,
+        versionId: version.id,
+        versionNumber: version.versionNumber,
+        title,
+        description: info ? info.description : '',
+        icon: info ? info.icon : null,
+        url: file.url,
+        sha1: file.sha1 || null,
+        sha512: file.sha512 || null,
+        size: file.size || null,
+      };
+    });
 
     const installed = [title];
     if (type === 'mod' && depth < 6) {

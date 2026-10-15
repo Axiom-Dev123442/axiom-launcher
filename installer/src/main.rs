@@ -4,9 +4,11 @@
 
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use eframe::egui::{
     self, Align2, Color32, CornerRadius, FontFamily, FontId, Pos2, Rect, Sense, Stroke, Vec2,
 };
+use sha2::{Digest, Sha512};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -79,12 +81,36 @@ fn set_phase(p: &Arc<Mutex<Progress>>, phase: Phase) {
     p.lock().unwrap().phase = phase;
 }
 
-fn download(p: &Arc<Mutex<Progress>>, url: &str, dest: &PathBuf) -> Result<(), String> {
-    let agent = ureq::AgentBuilder::new()
+fn agent() -> ureq::Agent {
+    ureq::AgentBuilder::new()
         .try_proxy_from_env(true)
         .timeout_connect(Duration::from_secs(20))
-        .build();
-    let resp = agent
+        .build()
+}
+
+/// The release's latest.yml sits next to the installer. electron-builder writes
+/// the installer's SHA-512 (base64) into it as a top-level `sha512:` line.
+fn expected_sha512(setup_url: &str) -> Result<String, String> {
+    let base = setup_url
+        .rsplit_once('/')
+        .map(|(base, _)| base)
+        .ok_or("The download address is not valid.")?;
+    let text = agent()
+        .get(&format!("{base}/latest.yml"))
+        .call()
+        .map_err(|e| format!("Couldn't reach GitHub. Check your internet connection.\n({e})"))?
+        .into_string()
+        .map_err(|e| format!("Couldn't read the release details: {e}"))?;
+    text.lines()
+        .find_map(|line| line.strip_prefix("sha512:"))
+        .map(|v| v.trim().trim_matches(|c: char| c == '\'' || c == '"').to_string())
+        .filter(|v| !v.is_empty())
+        .ok_or_else(|| "The release has no checksum for the installer, so it wasn't run.".to_string())
+}
+
+/// Downloads url to dest and returns the file's SHA-512 as base64.
+fn download(p: &Arc<Mutex<Progress>>, url: &str, dest: &PathBuf) -> Result<String, String> {
+    let resp = agent()
         .get(url)
         .call()
         .map_err(|e| format!("Couldn't reach GitHub. Check your internet connection.\n({e})"))?;
@@ -97,6 +123,7 @@ fn download(p: &Arc<Mutex<Progress>>, url: &str, dest: &PathBuf) -> Result<(), S
     let mut reader = resp.into_reader();
     let mut file = std::fs::File::create(dest).map_err(|e| format!("Couldn't save the download: {e}"))?;
     let mut buf = vec![0u8; 64 * 1024];
+    let mut hasher = Sha512::new();
     let start = Instant::now();
     let mut done: u64 = 0;
     loop {
@@ -104,6 +131,7 @@ fn download(p: &Arc<Mutex<Progress>>, url: &str, dest: &PathBuf) -> Result<(), S
         if n == 0 {
             break;
         }
+        hasher.update(&buf[..n]);
         file.write_all(&buf[..n]).map_err(|e| format!("Couldn't save the download: {e}"))?;
         done += n as u64;
         let mut g = p.lock().unwrap();
@@ -113,7 +141,20 @@ fn download(p: &Arc<Mutex<Progress>>, url: &str, dest: &PathBuf) -> Result<(), S
     if total > 0 && done != total {
         return Err("The download was incomplete. Please try again.".into());
     }
-    Ok(())
+    file.sync_all().map_err(|e| format!("Couldn't save the download: {e}"))?;
+    Ok(BASE64.encode(hasher.finalize()))
+}
+
+/// A new, empty folder for this run's download, so nothing else can have put a
+/// file at the path that gets run.
+fn fresh_temp_dir() -> Result<PathBuf, String> {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let dir = std::env::temp_dir().join(format!("obsidian-setup-{}-{stamp}", std::process::id()));
+    std::fs::create_dir(&dir).map_err(|e| format!("Couldn't prepare the download folder: {e}"))?;
+    Ok(dir)
 }
 
 #[cfg(windows)]
@@ -155,11 +196,19 @@ fn install(p: Arc<Mutex<Progress>>, dir: PathBuf, demo: bool) {
             return Ok(());
         }
         let url = std::env::var("OBSIDIAN_SETUP_URL").unwrap_or_else(|_| DOWNLOAD_URL.to_string());
-        let setup = std::env::temp_dir().join("Obsidian-Full-Setup.exe");
-        download(&p, &url, &setup)?;
-        set_phase(&p, Phase::Installing);
-        let r = run_installer(&setup, &dir);
-        let _ = std::fs::remove_file(&setup);
+        let expected = expected_sha512(&url)?;
+        let tmp = fresh_temp_dir()?;
+        let setup = tmp.join("Obsidian-Full-Setup.exe");
+        let r = download(&p, &url, &setup).and_then(|actual| {
+            if actual != expected {
+                return Err("The download didn't match the release's checksum, so it wasn't run. \
+                            A new version may have just been published. Please try again."
+                    .into());
+            }
+            set_phase(&p, Phase::Installing);
+            run_installer(&setup, &dir)
+        });
+        let _ = std::fs::remove_dir_all(&tmp);
         r
     })();
     set_phase(&p, match result {

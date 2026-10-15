@@ -5,3 +5,4 @@ out/
 .DS_Store
 test/.tmp/
 installer/target/
+__pycache__/

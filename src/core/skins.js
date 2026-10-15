@@ -4,7 +4,7 @@ const fsp = require('node:fs/promises');
 const crypto = require('node:crypto');
 const endpoints = require('./endpoints');
 const { request, getJson, HttpError } = require('./http');
-const { readJson, writeJson } = require('./util');
+const { readJson, writeJson, withLock, lockKey } = require('./util');
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
@@ -100,33 +100,44 @@ class SkinLibrary {
     return out;
   }
 
+  /** Reads, changes and saves the index as one step so parallel changes never overwrite each other. */
+  _change(fn) {
+    return withLock(lockKey(this.indexFile), async () => {
+      const index = await readJson(this.indexFile, []);
+      const { index: next = index, result } = (await fn(index)) || {};
+      await writeJson(this.indexFile, next);
+      return result;
+    });
+  }
+
   async add({ name, variant, data }) {
     validateSkin(data);
-    const index = await readJson(this.indexFile, []);
     const id = crypto.randomUUID();
     const file = `${id}.png`;
     await fsp.mkdir(this.dir, { recursive: true });
     await fsp.writeFile(path.join(this.dir, file), data);
-    index.unshift({ id, name: String(name || 'Skin').slice(0, 32), variant: variant === 'slim' ? 'slim' : 'classic', file, addedAt: Date.now() });
-    await writeJson(this.indexFile, index);
+    await this._change((index) => {
+      index.unshift({ id, name: String(name || 'Skin').slice(0, 32), variant: variant === 'slim' ? 'slim' : 'classic', file, addedAt: Date.now() });
+    });
     return id;
   }
 
   async update(id, changes) {
-    const index = await readJson(this.indexFile, []);
-    const s = index.find((x) => x.id === id);
-    if (!s) return;
-    if (changes.name) s.name = String(changes.name).slice(0, 32);
-    if (changes.variant) s.variant = changes.variant === 'slim' ? 'slim' : 'classic';
-    await writeJson(this.indexFile, index);
+    await this._change((index) => {
+      const s = index.find((x) => x.id === id);
+      if (!s) return;
+      if (changes.name) s.name = String(changes.name).slice(0, 32);
+      if (changes.variant) s.variant = changes.variant === 'slim' ? 'slim' : 'classic';
+    });
   }
 
   async remove(id) {
-    const index = await readJson(this.indexFile, []);
-    const s = index.find((x) => x.id === id);
-    if (!s) return;
-    await fsp.rm(path.join(this.dir, s.file), { force: true });
-    await writeJson(this.indexFile, index.filter((x) => x.id !== id));
+    await this._change(async (index) => {
+      const s = index.find((x) => x.id === id);
+      if (!s) return;
+      await fsp.rm(path.join(this.dir, s.file), { force: true });
+      return { index: index.filter((x) => x.id !== id) };
+    });
   }
 
   async read(id) {

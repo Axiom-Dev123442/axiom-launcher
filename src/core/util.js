@@ -22,12 +22,62 @@ async function readJson(p, fallback) {
   }
 }
 
-/** Writes JSON atomically so a crash never leaves a half-written file. */
+const locks = new Map();
+
+/**
+ * Runs fn once every earlier call with the same key has finished, so
+ * read-modify-write steps on one file never interleave and lose changes.
+ * Key it with lockKey(file). fn must not take the same lock again.
+ */
+async function withLock(key, fn) {
+  const prev = locks.get(key) || Promise.resolve();
+  let release;
+  const mine = new Promise((r) => (release = r));
+  const tail = prev.then(() => mine);
+  locks.set(key, tail);
+  try {
+    await prev;
+    return await fn();
+  } finally {
+    release();
+    if (locks.get(key) === tail) locks.delete(key);
+  }
+}
+
+/** The lock key for a file, the same however its path is written. */
+function lockKey(p) {
+  return path.resolve(p).toLowerCase();
+}
+
+/** Windows briefly refuses a rename while something else (antivirus, the indexer, another rename) holds the file. */
+async function renameRetrying(from, to) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fsp.rename(from, to);
+    } catch (err) {
+      if (attempt >= 5 || !['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err;
+      await new Promise((r) => setTimeout(r, 20 * 2 ** attempt));
+    }
+  }
+}
+
+/**
+ * Writes JSON atomically so a crash never leaves a half-written file. Writes
+ * to one file run one at a time in call order, so the last call always wins.
+ * This uses its own lock, so it is safe to call inside withLock(lockKey(p)).
+ */
 async function writeJson(p, data) {
-  await fsp.mkdir(path.dirname(p), { recursive: true });
-  const tmp = `${p}.${process.pid}.tmp`;
-  await fsp.writeFile(tmp, JSON.stringify(data, null, 2));
-  await fsp.rename(tmp, p);
+  return withLock(`write:${lockKey(p)}`, async () => {
+    await fsp.mkdir(path.dirname(p), { recursive: true });
+    const tmp = `${p}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
+    try {
+      await fsp.writeFile(tmp, JSON.stringify(data, null, 2));
+      await renameRetrying(tmp, p);
+    } catch (err) {
+      await fsp.rm(tmp, { force: true }).catch(() => {});
+      throw err;
+    }
+  });
 }
 
 function sha1File(p) {
@@ -109,6 +159,8 @@ module.exports = {
   exists,
   readJson,
   writeJson,
+  withLock,
+  lockKey,
   sha1File,
   sha1,
   mavenPath,

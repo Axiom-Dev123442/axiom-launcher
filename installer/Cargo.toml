@@ -13,6 +13,9 @@ path = "src/main.rs"
 [dependencies]
 eframe = { version = "=0.31.1", default-features = false, features = ["glow", "default_fonts"] }
 ureq = { version = "=2.10.1", default-features = false, features = ["tls"] }
+# Verifies the downloaded installer against the SHA-512 in the release's latest.yml.
+sha2 = "=0.10.8"
+base64 = "=0.22.1"
 
 [target.'cfg(windows)'.dependencies]
 rfd = { version = "=0.15.1", default-features = false }

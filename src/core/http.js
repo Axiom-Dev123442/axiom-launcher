@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { once } = require('node:events');
 const { sha1File } = require('./util');
 const pkg = require('../../package.json');
 
@@ -80,6 +81,15 @@ async function postJson(url, body, opts = {}) {
   return text ? JSON.parse(text) : {};
 }
 
+/** Ends a write stream and waits until its file is closed, even if it failed. */
+function closeStream(out) {
+  return new Promise((resolve) => {
+    if (out.closed) return resolve();
+    out.once('close', resolve);
+    out.end();
+  });
+}
+
 /**
  * Streams url to dest, verifying sha1 when given. Writes to a temporary file
  * first so an interrupted download never looks complete.
@@ -94,16 +104,23 @@ async function downloadFile(url, dest, { sha1, signal, onBytes, retries = 3 } = 
       const res = await request(url, { signal, retries: 0 });
       const hash = crypto.createHash('sha1');
       const out = fs.createWriteStream(tmp);
+      // A write error (disk full, file locked) must fail the download, not crash the app or hang it.
+      let writeError = null;
+      out.on('error', (err) => {
+        writeError = writeError || err;
+      });
       try {
         for await (const chunk of res.body) {
+          if (writeError) throw writeError;
           hash.update(chunk);
           received += chunk.length;
           if (onBytes) onBytes(chunk.length);
-          if (!out.write(chunk)) await new Promise((r) => out.once('drain', r));
+          if (!out.write(chunk)) await once(out, 'drain');
         }
       } finally {
-        await new Promise((r) => out.end(r));
+        await closeStream(out);
       }
+      if (writeError) throw writeError;
       const digest = hash.digest('hex');
       if (sha1 && digest.toLowerCase() !== sha1.toLowerCase()) {
         throw new Error(`Checksum mismatch for ${url}`);

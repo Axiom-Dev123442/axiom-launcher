@@ -78,7 +78,7 @@ export function instanceById(id) {
 
 /** The launch task currently running for an instance, if any. */
 export function launchTask(id) {
-  return state.tasks.find((t) => t.ref === id && t.status === 'running') || null;
+  return state.tasks.find((t) => t.ref === id && t.kind === 'launch' && t.status === 'running') || null;
 }
 
 export function gameState(id) {

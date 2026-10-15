@@ -1,6 +1,7 @@
 'use strict';
 const path = require('node:path');
 const fsp = require('node:fs/promises');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { isAllowed } = require('./rules');
 
@@ -106,26 +107,67 @@ function quoteArgFile(arg) {
   return `"${arg.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
+/** How long an argfile is kept. Java reads it as it starts, long before this. */
+const ARGFILE_LIFETIME = 30 * 1000;
+
+/** Deletes argfiles left behind by earlier launches (they contain the access token). */
+async function removeOldArgFiles(tempDir) {
+  let names = [];
+  try {
+    names = await fsp.readdir(tempDir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!/^launch-.*\.args$/.test(name)) continue;
+    const file = path.join(tempDir, name);
+    try {
+      const stat = await fsp.stat(file);
+      if (Date.now() - stat.mtimeMs > ARGFILE_LIFETIME) await fsp.rm(file, { force: true });
+    } catch {}
+  }
+}
+
 /**
  * Starts the game. Windows limits command lines to about 32k characters, so
- * long command lines go through a Java @argfile (Java 9 and newer only).
+ * long command lines go through a Java @argfile (Java 9 and newer only). The
+ * argfile holds the access token, so it is deleted once Java has read it.
  */
 async function spawnGame({ javaPath, args, cwd, javaMajor, tempDir, env = {} }) {
   let finalArgs = args;
+  let argFile = null;
   const length = args.reduce((n, a) => n + a.length + 3, javaPath.length);
   if (length > 30000 && javaMajor >= 9) {
     await fsp.mkdir(tempDir, { recursive: true });
-    const file = path.join(tempDir, `launch-${Date.now()}.args`);
-    await fsp.writeFile(file, args.map(quoteArgFile).join('\n'));
-    finalArgs = [`@${file}`];
+    await removeOldArgFiles(tempDir);
+    argFile = path.join(tempDir, `launch-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.args`);
+    await fsp.writeFile(argFile, args.map(quoteArgFile).join('\n'), { mode: 0o600 });
+    finalArgs = [`@${argFile}`];
   }
   await fsp.mkdir(cwd, { recursive: true });
-  return spawn(javaPath, finalArgs, {
-    cwd,
-    env: { ...process.env, ...env },
-    windowsHide: false,
-    detached: false,
-  });
+  let child;
+  try {
+    child = spawn(javaPath, finalArgs, {
+      cwd,
+      env: { ...process.env, ...env },
+      windowsHide: false,
+      detached: false,
+    });
+  } catch (err) {
+    if (argFile) await fsp.rm(argFile, { force: true }).catch(() => {});
+    throw err;
+  }
+  if (argFile) {
+    const cleanup = () => {
+      clearTimeout(timer);
+      fsp.rm(argFile, { force: true }).catch(() => {});
+    };
+    const timer = setTimeout(cleanup, ARGFILE_LIFETIME);
+    if (timer.unref) timer.unref();
+    child.once('error', cleanup);
+    child.once('close', cleanup);
+  }
+  return child;
 }
 
 module.exports = { buildLaunchArgs, spawnGame, splitArgs, substitute, expandArgs, redactArgs, quoteArgFile };

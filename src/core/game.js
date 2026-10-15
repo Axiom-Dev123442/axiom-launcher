@@ -167,8 +167,7 @@ class GameManager extends EventEmitter {
         this.running.delete(id);
         const seconds = Math.round((Date.now() - startedAt) / 1000);
         try {
-          const cur = await this.instances.get(id);
-          await this.instances.update(id, { playtime: (cur.playtime || 0) + seconds, lastPlayed: Date.now() });
+          await this.instances.update(id, (cur) => ({ playtime: (cur.playtime || 0) + seconds, lastPlayed: Date.now() }));
         } catch {}
         this._log(id, `Minecraft exited with code ${code}`, 'launcher');
         this.emit('state', id, 'idle');

@@ -183,8 +183,9 @@ async function minecraftLogin(msAccessToken) {
     });
   } catch (err) {
     if (err instanceof HttpError && err.status === 403) {
-      throw new Error(
-        'Minecraft refused this app. The Microsoft app ID needs Mojang approval (see Settings → Accounts → Help).',
+      throw Object.assign(
+        new Error('Minecraft refused this app. The Microsoft app ID needs Mojang approval (see Settings → Accounts → Help).'),
+        { code: 'APP_NOT_APPROVED' },
       );
     }
     throw err;

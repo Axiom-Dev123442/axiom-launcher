@@ -117,6 +117,7 @@ test('forge: runs installer processors and launches', { skip: process.platform =
     { name: 'data/client.lzma', data: binpatch },
   ]);
   add(`/forge-maven/net/minecraftforge/forge/${FORGE}/forge-${FORGE}-installer.jar`, installer);
+  add(`/forge-maven/net/minecraftforge/forge/${FORGE}/forge-${FORGE}-installer.jar.sha1`, sha1(installer));
 
   const saved = { ...endpoints };
   t.after(() => Object.assign(endpoints, saved));

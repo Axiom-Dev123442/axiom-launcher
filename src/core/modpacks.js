@@ -170,11 +170,10 @@ class ModpackManager {
   }
 
   async _recordPackFiles(inst, files, entries) {
-    const index = await this.content.readIndex(inst.id);
-    for (const [key, e] of Object.entries(entries)) index[key] = { ...e, fromPack: true };
-    await this.content.writeIndex(inst.id, index);
-    const fresh = await this.instances.get(inst.id);
-    await this.instances.update(inst.id, { modpack: { ...(fresh.modpack || {}), files } });
+    await this.content.updateIndex(inst.id, (index) => {
+      for (const [key, e] of Object.entries(entries)) index[key] = { ...e, fromPack: true };
+    });
+    await this.instances.update(inst.id, (fresh) => ({ modpack: { ...(fresh.modpack || {}), files } }));
   }
 
   async _applyMrpack(zip, inst, gameDir, task) {
@@ -301,9 +300,9 @@ class ModpackManager {
       if (/^saves\//.test(rel)) continue;
       await fsp.rm(safeJoin(gameDir, rel), { force: true });
     }
-    const index = await this.content.readIndex(instanceId);
-    for (const [key, e] of Object.entries(index)) if (e.fromPack) delete index[key];
-    await this.content.writeIndex(instanceId, index);
+    await this.content.updateIndex(instanceId, (index) => {
+      for (const [key, e] of Object.entries(index)) if (e.fromPack) delete index[key];
+    });
 
     await this.instances.update(instanceId, {
       mcVersion: info.mcVersion,

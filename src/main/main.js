@@ -22,6 +22,7 @@ const curseforge = require('../core/mods/curseforge');
 const { setupUpdater } = require('./updater');
 const { BlockTextures } = require('../core/blockTextures');
 const presets = require('../core/presets');
+const { safeJoin } = require('../core/util');
 
 const RELEASES_URL = 'https://github.com/lazentho/obsidian-launcher/releases/latest';
 
@@ -192,7 +193,8 @@ async function pickFile(filters, { multi = false, title } = {}) {
 
 const imageCache = new Map();
 async function imageData(url) {
-  if (!/^https:\/\/(textures\.minecraft\.net|[a-z0-9.-]*mojang\.com)\//.test(url.replace(/^http:/, 'https:'))) {
+  // Only Mojang's own hosts: textures.minecraft.net, mojang.com and its subdomains.
+  if (!/^https:\/\/(textures\.minecraft\.net|([a-z0-9-]+\.)*mojang\.com)\//.test(url.replace(/^http:/, 'https:'))) {
     throw new Error('Unsupported image host');
   }
   if (!imageCache.has(url)) imageCache.set(url, toDataUrl(await fetchImage(url)));
@@ -230,7 +232,6 @@ const api = {
     packaged: app.isPackaged,
     releasesUrl: RELEASES_URL,
     hasCurseforgeKey: curseforge.hasKey(),
-    hasMicrosoftId: Boolean(settings.microsoftClientId()),
     hasDiscordId: Boolean(settings.discordClientId()),
   }),
   'app:openExternal': async (url) => {
@@ -239,7 +240,7 @@ const api = {
   },
   'app:openFolder': async (kind, id, sub) => {
     let dir = paths.root;
-    if (kind === 'instance') dir = sub ? path.join(instances.gameDir(id), sub) : instances.gameDir(id);
+    if (kind === 'instance') dir = sub ? safeJoin(instances.gameDir(id), sub) : instances.gameDir(id);
     await fsp.mkdir(dir, { recursive: true });
     await shell.openPath(dir);
   },
@@ -450,7 +451,8 @@ const api = {
 
 ipcMain.handle('api', async (event, method, ...args) => {
   if (!win || event.sender !== win.webContents) return { ok: false, error: { message: 'Not allowed' } };
-  const fn = api[method];
+  // Own properties only, so names like "constructor" or "toString" are never callable.
+  const fn = typeof method === 'string' && Object.hasOwn(api, method) ? api[method] : null;
   if (!fn) return { ok: false, error: { message: `Unknown method ${method}` } };
   try {
     return { ok: true, data: await fn(...args) };

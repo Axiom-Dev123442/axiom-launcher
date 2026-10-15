@@ -6,6 +6,9 @@ const { safeJoin } = require('./util');
 
 const MAX = 0xffffffff;
 
+/** Largest single entry read into memory. Real game, mod and pack files are far smaller. */
+const MAX_ENTRY_SIZE = 1024 * 1024 * 1024;
+
 let CRC_TABLE;
 function crc32(buf) {
   if (typeof zlib.crc32 === 'function') return zlib.crc32(buf) >>> 0;
@@ -122,12 +125,23 @@ class ZipFile {
   async read(nameOrEntry) {
     const entry = typeof nameOrEntry === 'string' ? this.byName.get(nameOrEntry) : nameOrEntry;
     if (!entry) throw new Error(`Missing zip entry: ${nameOrEntry}`);
+    // A crafted zip could claim a huge size or unpack far beyond what it claims (a zip bomb).
+    if (entry.size > MAX_ENTRY_SIZE || entry.compressedSize > MAX_ENTRY_SIZE) {
+      throw new Error(`Zip entry is too large: ${entry.name}`);
+    }
     const header = await this._read(entry.offset, 30);
     if (header.readUInt32LE(0) !== 0x04034b50) throw new Error('Corrupt zip entry');
     const dataStart = entry.offset + 30 + header.readUInt16LE(26) + header.readUInt16LE(28);
     const raw = await this._read(dataStart, entry.compressedSize);
     if (entry.method === 0) return raw;
-    if (entry.method === 8) return zlib.inflateRawSync(raw);
+    if (entry.method === 8) {
+      try {
+        return zlib.inflateRawSync(raw, { maxOutputLength: Math.max(1, entry.size) });
+      } catch (err) {
+        if (err.code === 'ERR_BUFFER_TOO_LARGE') throw new Error(`Zip entry is larger than it claims: ${entry.name}`);
+        throw err;
+      }
+    }
     throw new Error(`Unsupported zip compression method ${entry.method}`);
   }
 

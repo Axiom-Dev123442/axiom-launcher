@@ -119,16 +119,21 @@ export function offlineDialog() {
   });
 }
 
-export async function microsoftLogin() {
-  if (!state.info.hasMicrosoftId) {
-    const go = await confirmDialog({
-      title: 'Microsoft login needs setting up',
-      message: 'Microsoft requires every launcher to have its own app ID. Add yours in Settings → Accounts, it only takes a few minutes. Offline accounts work without it.',
-      confirm: 'Open settings',
+/** Shows a failed sign in, with a way to the Microsoft app ID settings when Mojang refused the app. */
+function loginError(err) {
+  if (err.code === 'APP_NOT_APPROVED') {
+    toast('Microsoft sign in failed', {
+      kind: 'error',
+      message: err.message,
+      actions: [{ label: 'Open settings', primary: true, onClick: () => navigate({ page: 'settings', section: 'accounts' }) }],
+      timeout: 10000,
     });
-    if (go) navigate({ page: 'settings', section: 'accounts' });
     return;
   }
+  showError(err, 'Microsoft sign in failed');
+}
+
+export async function microsoftLogin() {
   // Sign in through Microsoft's own page; only pressing Accept is needed.
   let failed = false;
   const result = await modal((close) => {
@@ -142,7 +147,7 @@ export async function microsoftLogin() {
       .catch((err) => {
         if (!err.cancelled && err.name !== 'AbortError') {
           failed = true;
-          showError(err, 'Microsoft sign in failed');
+          loginError(err);
         }
         close('cancelled');
       });
@@ -214,7 +219,7 @@ export async function microsoftCodeLogin() {
         close(true);
       })
       .catch((err) => {
-        if (!err.cancelled) showError(err, 'Microsoft sign in failed');
+        if (!err.cancelled) loginError(err);
         close(false);
       });
     return {

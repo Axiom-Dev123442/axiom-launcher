@@ -42,10 +42,13 @@ class Settings {
   }
 
   async load() {
-    if (!this.data) {
-      const saved = await readJson(this.file, {});
-      this.data = { ...DEFAULTS, ...saved, discord: { ...DEFAULTS.discord, ...(saved.discord || {}) } };
+    // Callers that arrive while the file is being read share that read, so they all change one object.
+    if (!this._loading) {
+      this._loading = readJson(this.file, {}).then((saved) => {
+        this.data = { ...DEFAULTS, ...saved, discord: { ...DEFAULTS.discord, ...(saved.discord || {}) } };
+      });
     }
+    await this._loading;
     return this.data;
   }
 

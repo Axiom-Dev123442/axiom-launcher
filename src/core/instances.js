@@ -1,7 +1,7 @@
 'use strict';
 const path = require('node:path');
 const fsp = require('node:fs/promises');
-const { readJson, writeJson, exists, slugify } = require('./util');
+const { readJson, writeJson, exists, slugify, withLock, lockKey } = require('./util');
 
 const DEFAULTS = {
   icon: { type: 'preset', value: 'obsidian' },
@@ -79,8 +79,17 @@ class InstanceStore {
     return inst;
   }
 
+  /**
+   * Saves changes to an instance. changes may be a function of the current
+   * instance, for updates that build on its latest saved values.
+   */
   async update(id, changes) {
+    return withLock(lockKey(this.file(id)), () => this._update(id, changes));
+  }
+
+  async _update(id, changeArg) {
     const inst = await this.get(id);
+    const changes = typeof changeArg === 'function' ? changeArg(inst) : changeArg;
     const next = { ...inst, ...changes, id };
     // Changing version or loader means the installed loader profile no longer applies.
     if (

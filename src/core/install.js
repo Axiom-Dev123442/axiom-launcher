@@ -4,7 +4,7 @@ const fsp = require('node:fs/promises');
 const endpoints = require('./endpoints');
 const { isAllowed } = require('./rules');
 const { downloadAll, downloadFile, needsDownload } = require('./http');
-const { mavenPath, readJson, exists } = require('./util');
+const { mavenPath, readJson, exists, safeJoin } = require('./util');
 const { withZip } = require('./zip');
 
 function withSlash(url) {
@@ -85,8 +85,12 @@ async function extractNatives(natives, dir) {
         if (/\.(class|sha1|git|txt|md|LIST)$/i.test(name)) continue;
         if (n.flatten && !/\.(dll|so|dylib|jnilib)$/i.test(name)) continue;
         const rel = n.flatten ? path.basename(name) : name;
-        const target = path.join(dir, rel);
-        if (!target.startsWith(path.resolve(dir))) continue;
+        let target;
+        try {
+          target = safeJoin(dir, rel);
+        } catch {
+          continue;
+        }
         if (await exists(target)) continue;
         await fsp.mkdir(path.dirname(target), { recursive: true });
         await fsp.writeFile(target, await zip.read(entry));
@@ -126,8 +130,12 @@ async function layoutLegacyAssets(assets, paths, gameDir) {
   if (index.map_to_resources) targets.push(path.join(gameDir, 'resources'));
   for (const base of targets) {
     for (const [name, obj] of Object.entries(index.objects || {})) {
-      const target = path.join(base, name);
-      if (!path.resolve(target).startsWith(path.resolve(base))) continue;
+      let target;
+      try {
+        target = safeJoin(base, name);
+      } catch {
+        continue;
+      }
       if (await exists(target)) continue;
       await fsp.mkdir(path.dirname(target), { recursive: true });
       await fsp.copyFile(path.join(paths.assets, 'objects', obj.hash.slice(0, 2), obj.hash), target);

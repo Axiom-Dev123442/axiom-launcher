@@ -3,7 +3,7 @@ const path = require('node:path');
 const fsp = require('node:fs/promises');
 const { spawn } = require('node:child_process');
 const endpoints = require('../endpoints');
-const { request, getJson, downloadFile, downloadAll } = require('../http');
+const { request, getJson, downloadFile, downloadAll, HttpError } = require('../http');
 const { writeJson, exists, mavenPath, sha1File, compareVersions } = require('../util');
 const { withZip } = require('../zip');
 const { requiredJava } = require('../java');
@@ -44,6 +44,21 @@ async function pickForgeVersion(mcVersion) {
   const list = await forgeVersions(mcVersion);
   if (!list.length) throw new Error(`Forge does not support Minecraft ${mcVersion}`);
   return (list.find((v) => v.recommended) || list.find((v) => v.latest) || list[0]).full;
+}
+
+/**
+ * Forge's maven publishes a .sha1 next to each file. Returns it, or null for the
+ * rare old build that has none, so the download can be verified.
+ */
+async function publishedSha1(url, signal) {
+  try {
+    const res = await request(`${url}.sha1`, { signal, retries: 1 });
+    const text = (await res.text()).trim().slice(0, 40);
+    return /^[0-9a-f]{40}$/i.test(text) ? text : null;
+  } catch (err) {
+    if (err instanceof HttpError && err.status === 404) return null;
+    throw err;
+  }
 }
 
 function libPath(paths, coord) {
@@ -88,15 +103,15 @@ function runJava(javaPath, args, { cwd, signal, onLog }) {
  */
 async function installForge({ mcVersion, forgeVersion, paths, versions, java, task, onLog }) {
   if (!forgeVersion) forgeVersion = await pickForgeVersion(mcVersion);
+  // Modpacks supply this value, and it becomes part of a URL and a file path.
+  if (!/^[\w.+-]+$/.test(forgeVersion)) throw new Error(`Invalid Forge version: ${forgeVersion}`);
 
   const installer = path.join(paths.cache, 'forge', `forge-${forgeVersion}-installer.jar`);
   if (!(await exists(installer))) {
     task.setStage('Downloading Forge installer');
-    await downloadFile(
-      `${endpoints.forgeMaven}/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-installer.jar`,
-      installer,
-      { signal: task.signal },
-    );
+    const url = `${endpoints.forgeMaven}/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-installer.jar`;
+    const sha1 = await publishedSha1(url, task.signal);
+    await downloadFile(url, installer, { sha1, signal: task.signal });
   }
 
   return withZip(installer, async (zip) => {

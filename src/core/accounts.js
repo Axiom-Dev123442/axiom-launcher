@@ -15,10 +15,19 @@ class AccountStore {
     this.decrypt = decrypt;
     this.getClientId = getClientId;
     this.data = null;
+    this.refreshing = new Map();
   }
 
   async load() {
-    if (!this.data) this.data = await readJson(this.file, { active: null, accounts: [] });
+    // Callers that arrive while the file is being read share that read, so they all change one object.
+    if (!this.data) {
+      if (!this._loading) {
+        this._loading = readJson(this.file, { active: null, accounts: [] }).then((d) => {
+          this.data = d;
+        });
+      }
+      await this._loading;
+    }
     return this.data;
   }
 
@@ -140,8 +149,23 @@ class AccountStore {
     acc.capes = (profile.capes || []).map((c) => ({ id: c.id, alias: c.alias, url: c.url, active: c.state === 'ACTIVE' }));
   }
 
-  /** A valid Minecraft token for a Microsoft account, refreshing it when close to expiry. */
+  /**
+   * A valid Minecraft token for a Microsoft account, refreshing it when close to
+   * expiry. Calls for the same account share one refresh, because Microsoft
+   * refresh tokens are single use and a second refresh with the old one fails.
+   */
   async minecraftToken(id) {
+    if (this.refreshing.has(id)) return this.refreshing.get(id);
+    const pending = this._minecraftToken(id);
+    this.refreshing.set(id, pending);
+    try {
+      return await pending;
+    } finally {
+      this.refreshing.delete(id);
+    }
+  }
+
+  async _minecraftToken(id) {
     const d = await this.load();
     const acc = d.accounts.find((a) => a.id === id);
     if (!acc || acc.type !== 'microsoft') throw new Error('This needs a Microsoft account.');
@@ -176,6 +200,7 @@ class AccountStore {
     const profile = await ms.getProfile(token);
     const d = await this.load();
     const acc = d.accounts.find((a) => a.id === id);
+    if (!acc) return this.list();
     this._applyProfile(acc, profile);
     await this.save();
     return this.list();
