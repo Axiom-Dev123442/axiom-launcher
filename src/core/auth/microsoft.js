@@ -25,10 +25,22 @@ async function postForm(url, form, signal) {
 }
 
 /** Starts a device code login. The person enters userCode at verificationUri. */
+/** Turns Azure's error codes into something a person can act on. */
+function azureError(r) {
+  const text = r.error_description || r.error || 'Microsoft sign in failed';
+  if (/AADSTS70002/.test(text)) {
+    return new Error('Microsoft login is not switched on for this app yet. In Azure, open the app’s Authentication page and set "Allow public client flows" to Yes.');
+  }
+  if (/AADSTS700016/.test(text)) {
+    return new Error('Microsoft doesn’t recognise this app ID. Check the Microsoft app ID in Settings → Accounts.');
+  }
+  return new Error(text.split(/\r?\n/)[0]);
+}
+
 async function startDeviceCode(clientId) {
   if (!clientId) throw new Error('No Microsoft app ID is set. Add one in Settings → Accounts.');
   const r = await postForm(`${endpoints.msLogin}/devicecode`, { client_id: clientId, scope: SCOPE });
-  if (r.error) throw new Error(r.error_description || r.error);
+  if (r.error) throw azureError(r);
   return {
     userCode: r.user_code,
     deviceCode: r.device_code,
@@ -57,7 +69,7 @@ async function pollDeviceCode(clientId, { deviceCode, interval, expiresIn }, sig
     }
     if (r.error === 'authorization_declined') throw new Error('Sign in was cancelled.');
     if (r.error === 'expired_token') break;
-    throw new Error(r.error_description || r.error || 'Microsoft sign in failed');
+    throw azureError(r);
   }
   throw new Error('The sign in code expired. Please try again.');
 }
