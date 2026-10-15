@@ -12,7 +12,8 @@
     "test": "node --test \"test/*.test.js\"",
     "dist": "electron-builder --win nsis-web",
     "dist:full": "electron-builder --win nsis",
-    "release": "electron-builder --win nsis-web --publish always"
+    "release": "electron-builder --win nsis-web --publish always",
+    "icons": "electron scripts/make-icons.js"
   },
   "dependencies": {
     "electron-updater": "6.8.9",
@@ -25,7 +26,7 @@
   "build": {
     "appId": "dev.lazentho.obsidian",
     "productName": "Obsidian",
-    "copyright": "Copyright © 2026 lazentho",
+    "copyright": "Copyright \u00a9 2026 lazentho",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -33,7 +34,10 @@
     "files": [
       "src/**/*",
       "assets/**/*",
-      "package.json"
+      "package.json",
+      "!**/*.map",
+      "!**/node_modules/**/{README,CHANGELOG,readme,changelog}*",
+      "!**/node_modules/**/*.d.ts"
     ],
     "win": {
       "icon": "build/icon.png",

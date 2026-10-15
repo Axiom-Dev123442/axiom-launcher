@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Tags like v0.2.0 publish a GitHub release with the small web installer.
+      - name: Build and publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx electron-builder --win nsis-web --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Every other push builds a full offline installer you can download from the run page.
+      - name: Build test installer
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npx electron-builder --win nsis --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Obsidian-Windows
+          path: |
+            dist/*.exe
+            dist/nsis-web/*.exe
+            dist/nsis-web/*.7z
+          if-no-files-found: ignore
+          retention-days: 14

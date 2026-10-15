@@ -1877,52 +1877,92 @@ input[type='range']::-webkit-slider-thumb {
 
 .skins {
   display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: 22px;
-  height: 100%;
+  grid-template-columns: 420px 1fr;
+  gap: 24px;
+  align-items: start;
 }
 .stage {
-  position: relative;
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: var(--surface);
-  min-height: 520px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
 }
 .stage .viewer {
-  flex: 1;
+  position: relative;
+  height: 470px;
   display: grid;
   place-items: center;
   cursor: grab;
+}
+.stage .viewer::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 38px;
+  width: 210px;
+  height: 34px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 70%);
+  pointer-events: none;
+}
+.stage .viewer::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 120px;
+  background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(transparent, #000 70%);
+  transform: perspective(300px) rotateX(55deg);
+  transform-origin: bottom;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.stage .viewer canvas {
+  position: relative;
+  z-index: 1;
 }
 .stage .viewer:active {
   cursor: grabbing;
 }
 .stage .stage-top {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px 18px 0;
+  align-items: flex-start;
+  padding: 16px 16px 0;
 }
 .stage .stage-bottom {
-  padding: 16px 18px 18px;
+  position: relative;
+  z-index: 2;
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.icon-btn.on {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .skin-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 12px;
 }
 .skin-card {
   position: relative;
-  border-radius: var(--radius);
+  border-radius: 9px;
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 30px 10px 10px;
+  padding: 8px 8px 10px;
   cursor: pointer;
   text-align: center;
   transition: transform 0.2s var(--ease), border-color 0.2s, background 0.2s;
@@ -1933,13 +1973,33 @@ input[type='range']::-webkit-slider-thumb {
 }
 .skin-card.active {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
-.skin-card canvas {
-  width: 64px;
-  height: 128px;
+.skin-card .thumb {
+  height: 168px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: radial-gradient(ellipse at 50% 92%, rgba(0, 0, 0, 0.35), transparent 45%), var(--surface);
+  color: var(--text-3);
+}
+.skin-card .thumb svg {
+  width: 26px;
+  height: 26px;
+}
+.skin-card .thumb img,
+.skin-card .thumb canvas {
+  height: 160px;
+  width: auto;
+  image-rendering: auto;
+  transition: transform 0.25s var(--ease);
+}
+.skin-card .thumb canvas {
   image-rendering: pixelated;
-  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
+  width: 80px;
+}
+.skin-card:hover .thumb img {
+  transform: scale(1.05) rotate(-1deg);
 }
 .skin-card .n {
   font-weight: 600;
@@ -1949,11 +2009,16 @@ input[type='range']::-webkit-slider-thumb {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.skin-card .v {
+  font-size: 11px;
+  color: var(--text-3);
+}
 .skin-card .x {
   position: absolute;
   top: 6px;
   right: 6px;
   opacity: 0;
+  z-index: 1;
 }
 .skin-card:hover .x {
   opacity: 1;
@@ -1962,6 +2027,16 @@ input[type='range']::-webkit-slider-thumb {
   position: absolute;
   top: 8px;
   left: 8px;
+  z-index: 1;
+  height: 20px;
+  font-size: 10.5px;
+}
+.skin-card.add {
+  border-style: dashed;
+  background: transparent;
+}
+.skin-card.add .thumb {
+  background: transparent;
 }
 .cape-row {
   display: flex;

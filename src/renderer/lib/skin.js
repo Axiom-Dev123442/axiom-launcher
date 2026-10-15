@@ -3,61 +3,91 @@ import { call } from './store.js';
 
 let defaultSkinUrl = null;
 
-/** Draws a simple original default character skin (64×64) so nothing depends on Mojang art. */
+/**
+ * Draws an original default character skin (64×64) with pixel shading, so
+ * nothing depends on Mojang art.
+ */
 export function defaultSkin() {
   if (defaultSkinUrl) return defaultSkinUrl;
   const c = document.createElement('canvas');
   c.width = 64;
   c.height = 64;
   const g = c.getContext('2d');
-  const fill = (color, x, y, w, h) => {
-    g.fillStyle = color;
-    g.fillRect(x, y, w, h);
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  // Fills a rectangle with slightly varied shades of a base colour.
+  const fill = (rgb, x, y, w, h, vary = 10) => {
+    for (let yy = y; yy < y + h; yy++) {
+      for (let xx = x; xx < x + w; xx++) {
+        const d = Math.round((rand() - 0.5) * vary);
+        g.fillStyle = `rgb(${rgb[0] + d},${rgb[1] + d},${rgb[2] + d})`;
+        g.fillRect(xx, yy, 1, 1);
+      }
+    }
   };
-  const SKIN = '#c58f6d';
-  const SKIN_D = '#b07a5a';
-  const HAIR = '#3a2716';
-  const SHIRT = '#5b3fd0';
-  const SHIRT_D = '#4a31b0';
-  const PANTS = '#2a2f45';
-  const SHOES = '#1a1b22';
+  const px = (rgb, x, y) => fill(rgb, x, y, 1, 1, 0);
+  const SKIN = [198, 146, 112];
+  const SKIN_D = [176, 124, 92];
+  const HAIR = [58, 40, 26];
+  const HAIR_L = [78, 55, 36];
+  const HOOD = [74, 58, 150];
+  const HOOD_D = [56, 43, 118];
+  const TRIM = [150, 132, 226];
+  const PANTS = [44, 48, 66];
+  const PANTS_D = [34, 37, 52];
+  const BOOTS = [30, 28, 34];
 
-  // Head
+  // Head: skin all round, hair on top, back and upper sides
   fill(SKIN, 0, 8, 32, 8);
   fill(HAIR, 8, 0, 8, 8);
   fill(SKIN_D, 16, 0, 8, 8);
-  fill(HAIR, 0, 8, 32, 2);
-  fill(HAIR, 24, 8, 8, 6);
-  fill(HAIR, 0, 10, 2, 2);
-  fill(HAIR, 22, 10, 2, 2);
+  fill(HAIR, 0, 8, 8, 3);
+  fill(HAIR, 16, 8, 8, 3);
+  fill(HAIR, 24, 8, 8, 7);
+  fill(HAIR, 8, 8, 8, 2);
+  fill(HAIR_L, 9, 8, 3, 1, 4);
+  px(HAIR, 8, 10);
+  px(HAIR, 15, 10);
   // Face
-  fill('#ffffff', 9, 12, 2, 1);
-  fill('#ffffff', 13, 12, 2, 1);
-  fill('#4b3cc4', 10, 12, 1, 1);
-  fill('#4b3cc4', 13, 12, 1, 1);
-  fill('#7a4a36', 11, 14, 2, 1);
-  fill(SKIN_D, 11, 13, 2, 1);
-  // Body
-  fill(SHIRT, 16, 16, 24, 16);
-  fill(SHIRT_D, 20, 16, 16, 4);
-  fill('#8b74ff', 23, 20, 2, 12);
-  // Arms (right at 40,16; left at 32,48)
+  fill([255, 255, 255], 9, 12, 2, 1, 0);
+  fill([255, 255, 255], 13, 12, 2, 1, 0);
+  px([70, 58, 170], 10, 12);
+  px([70, 58, 170], 13, 12);
+  fill(SKIN_D, 11, 13, 2, 1, 4);
+  fill([130, 80, 62], 11, 14, 2, 1, 0);
+  fill(SKIN_D, 8, 15, 8, 1, 4);
+  // Hat layer: hood rim around the back of the head
+  fill(HOOD, 56, 8, 8, 8, 8);
+  fill(HOOD, 32, 8, 8, 8, 8);
+  fill(HOOD, 48, 8, 8, 8, 8);
+  fill(HOOD, 40, 0, 8, 8, 8);
+  fill(HOOD_D, 48, 0, 8, 8, 6);
+  fill(HOOD, 40, 8, 8, 1, 8);
+  // Body: hoodie with zip and pocket
+  fill(HOOD, 16, 16, 24, 16, 10);
+  fill(HOOD_D, 28, 16, 8, 4, 6);
+  fill(TRIM, 23, 20, 2, 12, 6);
+  fill(HOOD_D, 20, 27, 8, 3, 6);
+  fill(HOOD_D, 20, 31, 8, 1, 4);
+  // Arms
   for (const [ax, ay] of [
     [40, 16],
     [32, 48],
   ]) {
-    fill(SHIRT, ax, ay, 16, 16);
-    fill(SKIN, ax, ay + 10, 16, 6);
-    fill(SKIN, ax + 8, ay, 4, 4);
+    fill(HOOD, ax, ay, 16, 16, 10);
+    fill(HOOD_D, ax, ay + 14, 16, 1, 4);
+    fill(SKIN, ax, ay + 15, 16, 1, 6);
+    fill(SKIN_D, ax + 8, ay, 4, 4, 4);
   }
-  // Legs (right at 0,16; left at 16,48)
+  // Legs
   for (const [lx, ly] of [
     [0, 16],
     [16, 48],
   ]) {
-    fill(PANTS, lx, ly, 16, 16);
-    fill(SHOES, lx, ly + 13, 16, 3);
-    fill(SHOES, lx + 8, ly, 4, 4);
+    fill(PANTS, lx, ly, 16, 16, 8);
+    fill(PANTS_D, lx, ly + 4, 16, 1, 4);
+    fill(BOOTS, lx, ly + 13, 16, 3, 6);
+    fill(BOOTS, lx + 8, ly, 4, 4, 4);
   }
   defaultSkinUrl = c.toDataURL();
   return defaultSkinUrl;
@@ -187,26 +217,32 @@ export function capeView(src) {
  * Creates an interactive 3D skin viewer (skinview3d), or null when WebGL or
  * the library is unavailable.
  */
-export function createViewer({ width, height, src, variant = 'classic', cape = null, animation = 'idle', zoom = 0.9, rotate = false }) {
+export function createViewer({ width, height, src, variant = 'classic', cape = null, animation = 'idle', zoom = 0.9, rotate = false, nameTag = null }) {
   const lib = window.skinview3d;
   if (!lib) return null;
   const canvas = document.createElement('canvas');
   let viewer;
   try {
-    viewer = new lib.SkinViewer({ canvas, width, height, zoom, enableControls: true });
+    viewer = new lib.SkinViewer({ canvas, width, height, zoom, enableControls: true, pixelRatio: 'match-device' });
   } catch {
     return null;
   }
-  viewer.fov = 40;
+  viewer.fov = 38;
   viewer.zoom = zoom;
-  viewer.globalLight.intensity = 3;
-  viewer.cameraLight.intensity = 0.6;
+  viewer.globalLight.intensity = 2.6;
+  viewer.cameraLight.intensity = 0.9;
   viewer.autoRotate = rotate;
-  viewer.autoRotateSpeed = 0.6;
-  viewer.playerObject.rotation.y = -0.35;
+  viewer.autoRotateSpeed = 0.7;
+  viewer.playerWrapper.rotation.y = -0.4;
   if (viewer.controls) {
-    viewer.controls.enableZoom = false;
+    viewer.controls.enableZoom = true;
+    viewer.controls.minDistance = 30;
+    viewer.controls.maxDistance = 110;
     viewer.controls.enablePan = false;
+    viewer.controls.enableDamping = true;
+  }
+  if (nameTag && lib.NameTagObject) {
+    viewer.nameTag = new lib.NameTagObject(nameTag, { textStyle: 'white', backgroundStyle: 'rgba(0,0,0,0.35)', font: '48px Minecraft, Segoe UI, sans-serif' });
   }
   setAnimation(viewer, animation);
   viewer.loadSkin(src || defaultSkin(), { model: variant === 'slim' ? 'slim' : 'default' });
@@ -217,8 +253,82 @@ export function createViewer({ width, height, src, variant = 'classic', cape = n
 export function setAnimation(viewer, name) {
   const lib = window.skinview3d;
   if (!lib || !viewer) return;
-  const anims = { idle: lib.IdleAnimation, walk: lib.WalkingAnimation, run: lib.RunningAnimation, wave: lib.WaveAnimation, fly: lib.FlyingAnimation };
+  const anims = {
+    idle: lib.IdleAnimation,
+    walk: lib.WalkingAnimation,
+    run: lib.RunningAnimation,
+    wave: lib.WaveAnimation,
+    fly: lib.FlyingAnimation,
+    crouch: lib.CrouchAnimation,
+  };
   const Anim = anims[name];
   viewer.animation = Anim ? new Anim() : null;
   if (viewer.animation && name === 'walk') viewer.animation.speed = 0.7;
+  if (!viewer.animation) {
+    for (const part of ['leftArm', 'rightArm', 'leftLeg', 'rightLeg', 'head', 'body']) {
+      const p = viewer.playerObject.skin[part];
+      if (p) p.rotation.set(0, 0, 0);
+    }
+  }
+}
+
+/* 3D thumbnails: one hidden viewer renders posed snapshots, so a page full of
+   skins costs a single WebGL context. */
+let thumbViewer = null;
+let thumbQueue = Promise.resolve();
+const thumbCache = new Map();
+
+function poseThumb(viewer) {
+  const s = viewer.playerObject.skin;
+  viewer.playerObject.rotation.set(0, 0, 0);
+  viewer.playerWrapper.rotation.set(0, -0.55, 0);
+  s.head.rotation.set(0.08, 0.25, 0);
+  s.rightArm.rotation.set(-0.45, 0, 0.06);
+  s.leftArm.rotation.set(0.45, 0, -0.06);
+  s.rightLeg.rotation.set(0.4, 0, 0);
+  s.leftLeg.rotation.set(-0.4, 0, 0);
+}
+
+/** Renders a posed, lit 3D snapshot of a skin and returns it as a PNG data URL. */
+export function skinThumb(src, variant = 'classic') {
+  const key = `${variant}:${src}`;
+  if (thumbCache.has(key)) return thumbCache.get(key);
+  const job = (thumbQueue = thumbQueue.then(async () => {
+    const lib = window.skinview3d;
+    if (!lib) throw new Error('3D unavailable');
+    if (!thumbViewer) {
+      thumbViewer = new lib.SkinViewer({
+        canvas: document.createElement('canvas'),
+        width: 240,
+        height: 360,
+        renderPaused: true,
+        preserveDrawingBuffer: true,
+        pixelRatio: 1,
+      });
+      thumbViewer.fov = 34;
+      thumbViewer.zoom = 0.86;
+      thumbViewer.globalLight.intensity = 2.6;
+      thumbViewer.cameraLight.intensity = 1;
+    }
+    await thumbViewer.loadSkin(src, { model: variant === 'slim' ? 'slim' : 'default' });
+    poseThumb(thumbViewer);
+    thumbViewer.render();
+    return thumbViewer.canvas.toDataURL('image/png');
+  }));
+  thumbQueue = job.catch(() => {});
+  thumbCache.set(key, job);
+  return job;
+}
+
+/** An <img> that shows a 3D thumbnail once rendered (flat preview until then). */
+export function skinThumbImg(src, variant = 'classic', cls = 'skin-thumb') {
+  const img = document.createElement('img');
+  img.className = cls;
+  img.alt = '';
+  img.draggable = false;
+  skinThumb(src, variant).then(
+    (url) => (img.src = url),
+    () => img.replaceWith(frontView(src, variant)),
+  );
+  return img;
 }
