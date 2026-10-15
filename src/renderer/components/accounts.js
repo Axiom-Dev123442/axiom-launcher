@@ -129,6 +129,56 @@ export async function microsoftLogin() {
     if (go) navigate({ page: 'settings', section: 'accounts' });
     return;
   }
+  // Sign in through Microsoft's own page; only pressing Accept is needed.
+  let failed = false;
+  const result = await modal((close) => {
+    call('accounts:loginMicrosoftBrowser')
+      .then(async () => {
+        await refreshAccounts();
+        const acc = activeAccount();
+        toast(`Signed in as ${acc ? acc.name : 'Microsoft account'}`, { kind: 'success' });
+        close('done');
+      })
+      .catch((err) => {
+        if (!err.cancelled && err.name !== 'AbortError') {
+          failed = true;
+          showError(err, 'Microsoft sign in failed');
+        }
+        close('cancelled');
+      });
+    return {
+      title: 'Sign in with Microsoft',
+      icon: icon('key'),
+      sticky: true,
+      body: h(
+        'div',
+        { style: 'text-align:center;padding:10px 0 4px' },
+        h('div.row', { style: 'justify-content:center;gap:10px;margin-bottom:14px' }, spinner(), h('b', 'Finish signing in in the Microsoft window')),
+        h('p.muted', { style: 'margin:0' }, 'Pick your account and press Accept. The window closes by itself when you’re done.'),
+      ),
+      footer: [
+        btn('Use a code instead', {
+          cls: 'ghost',
+          onClick: () => {
+            call('accounts:cancelLogin');
+            close('code');
+          },
+        }),
+        btn('Cancel', {
+          onClick: () => {
+            call('accounts:cancelLogin');
+            close('cancelled');
+          },
+        }),
+      ],
+    };
+  });
+  if (result !== 'code' || failed) return;
+  return microsoftCodeLogin();
+}
+
+/** Fallback sign in with a code entered at microsoft.com/link. */
+export async function microsoftCodeLogin() {
   let offCode = null;
   modal((close) => {
     const body = h('div.center', spinner('lg'));

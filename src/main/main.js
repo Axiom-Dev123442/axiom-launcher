@@ -64,6 +64,53 @@ const game = new GameManager({
 
 let win = null;
 let loginAbort = null;
+let loginWindow = null;
+
+/**
+ * Shows Microsoft's sign in page in a small window and resolves with the URL it
+ * redirects to after the person accepts. Uses a fresh session every time so a
+ * different account can be picked.
+ */
+function openLoginWindow(url, redirectUri) {
+  return new Promise((resolve, reject) => {
+    if (loginWindow && !loginWindow.isDestroyed()) loginWindow.close();
+    loginWindow = new BrowserWindow({
+      width: 500,
+      height: 680,
+      parent: win,
+      modal: true,
+      title: 'Sign in with Microsoft',
+      autoHideMenuBar: true,
+      backgroundColor: '#ffffff',
+      icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
+      webPreferences: { partition: `ms-login-${Date.now()}`, contextIsolation: true, nodeIntegration: false, sandbox: true },
+    });
+    let done = false;
+    const check = (event, target) => {
+      if (done || !target.startsWith(redirectUri)) return;
+      done = true;
+      if (event && event.preventDefault) event.preventDefault();
+      resolve(target);
+      setImmediate(() => loginWindow && !loginWindow.isDestroyed() && loginWindow.close());
+    };
+    const wc = loginWindow.webContents;
+    wc.on('will-redirect', (e, target) => check(e, target));
+    wc.on('will-navigate', (e, target) => check(e, target));
+    wc.on('did-navigate', (e, target) => check(null, target));
+    wc.setWindowOpenHandler(({ url: target }) => {
+      if (/^https:\/\//.test(target)) shell.openExternal(target);
+      return { action: 'deny' };
+    });
+    loginWindow.on('closed', () => {
+      loginWindow = null;
+      if (!done) {
+        done = true;
+        reject(Object.assign(new Error('Sign in was cancelled.'), { name: 'AbortError' }));
+      }
+    });
+    loginWindow.loadURL(url);
+  });
+}
 
 function send(channel, ...args) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, ...args);
@@ -281,7 +328,9 @@ const api = {
   },
   'accounts:cancelLogin': () => {
     if (loginAbort) loginAbort.abort();
+    if (loginWindow && !loginWindow.isDestroyed()) loginWindow.close();
   },
+  'accounts:loginMicrosoftBrowser': () => accounts.loginMicrosoftBrowser(openLoginWindow),
   'accounts:refresh': (id) => accounts.refreshProfile(id),
 
   // Ready-made instances and performance mods

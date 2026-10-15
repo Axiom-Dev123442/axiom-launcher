@@ -50,6 +50,12 @@
 * {
   box-sizing: border-box;
 }
+svg:not([width]) {
+  max-width: 100%;
+}
+.page svg:not([width]):not(.ii) {
+  max-height: 64px;
+}
 
 html,
 body {
@@ -1627,6 +1633,15 @@ input[type='range']::-webkit-slider-thumb {
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--border);
+}
+.target > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--text-3);
+}
+.target > span {
+  min-width: 0;
 }
 .target .select {
   width: auto;

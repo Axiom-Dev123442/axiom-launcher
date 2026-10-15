@@ -18,6 +18,8 @@ CROP = (156, 160, 1096, 1100)
 # The dark artwork (hexagon on black), used wherever the background is dark.
 SRC_DARK = ROOT / "build" / "logo-source-dark.png"
 CROP_DARK = (122, 70, 1122, 1070)
+# The rounded tile in the dark artwork, measured from its soft edge.
+DARK_TILE = (80, 79, 1168, 1167)
 
 
 def cutout() -> Image.Image:
@@ -39,25 +41,14 @@ def cutout() -> Image.Image:
 
 
 def dark_tile(size: int) -> Image.Image:
-    """The dark artwork on its own rounded black tile (the stone's darkest faces
-    match the background, so it keeps its background). A fine edge keeps the
-    tile visible on dark surfaces."""
+    """The dark artwork exactly as drawn, cropped to its rounded tile with the
+    corners outside the rounding made transparent."""
     s = size * 4
-    art = Image.open(SRC_DARK).convert("RGB").crop(CROP_DARK).resize((s, s), Image.LANCZOS)
-    a = np.asarray(art).astype(np.int16)
-    a[a.max(axis=2) < 16] = 0  # drop the source's faint tile edge
-    t = np.linspace(0, 1, s)[:, None, None]
-    tile = (np.array([22, 21, 27]) * (1 - t) + np.array([8, 8, 11]) * t) * np.ones((s, s, 3))
-    lit = np.maximum(tile, a).astype(np.uint8)
-    out = Image.fromarray(lit, "RGB").convert("RGBA")
-    radius = int(s * 0.225)
-    edge = Image.new("L", (s, s), 0)
-    ImageDraw.Draw(edge).rounded_rectangle([0, 0, s - 1, s - 1], radius=radius, outline=255, width=max(4, s // 140))
-    out = Image.composite(Image.new("RGBA", (s, s), (60, 58, 70, 255)), out, edge)
+    art = Image.open(SRC_DARK).convert("RGB").crop(DARK_TILE).resize((s, s), Image.LANCZOS).convert("RGBA")
     mask = Image.new("L", (s, s), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, s - 1, s - 1], radius=radius, fill=255)
-    out.putalpha(mask)
-    return out.resize((size, size), Image.LANCZOS)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, s - 1, s - 1], radius=int(s * 0.21), fill=255)
+    art.putalpha(mask)
+    return art.resize((size, size), Image.LANCZOS)
 
 
 MARK = None
@@ -101,35 +92,32 @@ def main():
     (assets / "discord").mkdir(parents=True, exist_ok=True)
     (ROOT / "installer" / "assets").mkdir(parents=True, exist_ok=True)
 
-    icon(512).save(build / "icon.png")
-    icon(256).save(assets / "icon.png")
+    dark_tile(512).save(build / "icon.png")
+    dark_tile(256).save(assets / "icon.png")
     dark_tile(128).save(assets / "logo.png")
     icon(128).save(assets / "logo-light.png")
 
     sizes = [16, 24, 32, 48, 64, 128, 256]
-    frames = [icon(s) for s in sizes]
+    frames = [dark_tile(s) for s in sizes]
     frames[-1].save(build / "icon.ico", format="ICO", sizes=[(s, s) for s in sizes], append_images=frames[:-1])
 
     # Raw RGBA for the custom installer: window icon and the logo it draws.
-    (ROOT / "installer" / "assets" / "icon64.rgba").write_bytes(icon(64).tobytes())
+    (ROOT / "installer" / "assets" / "icon64.rgba").write_bytes(dark_tile(64).tobytes())
     (ROOT / "installer" / "assets" / "logo160.rgba").write_bytes(dark_tile(160).tobytes())
 
     # Discord art: the mark on a light tile so it reads in Discord's dark UI.
-    d = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
-    ImageDraw.Draw(d).rounded_rectangle([0, 0, 1023, 1023], radius=220, fill=(242, 242, 246, 255))
-    d.alpha_composite(icon(800), (112, 112))
-    d.save(assets / "discord" / "obsidian.png")
+    dark_tile(1024).save(assets / "discord" / "obsidian.png")
 
     # NSIS images for the standard full installer.
     side = Image.new("RGBA", (164, 314), (246, 246, 249, 255))
-    side.alpha_composite(icon(96), (34, 70))
+    side.alpha_composite(dark_tile(96), (34, 70))
     draw = ImageDraw.Draw(side)
     draw.text((82, 196), "Obsidian", font=font(20), fill=(20, 18, 26), anchor="mm")
     draw.text((82, 220), "Minecraft launcher", font=font(11, bold=False), fill=(110, 106, 124), anchor="mm")
     side.convert("RGB").save(build / "installerSidebar.bmp", "BMP")
 
     header = Image.new("RGBA", (150, 57), (255, 255, 255, 255))
-    header.alpha_composite(icon(44), (100, 6))
+    header.alpha_composite(dark_tile(44), (100, 6))
     ImageDraw.Draw(header).text((92, 28), "Obsidian", font=font(13), fill=(24, 22, 30), anchor="rm")
     header.convert("RGB").save(build / "installerHeader.bmp", "BMP")
     print("icons written")

@@ -102,6 +102,20 @@ class AccountStore {
     return this._storeMicrosoft(tokens.refresh_token, mc);
   }
 
+  /**
+   * Browser sign in: openPage(url, redirectUri) shows Microsoft's page and
+   * resolves with the URL it redirects to once the person accepts.
+   */
+  async loginMicrosoftBrowser(openPage) {
+    const clientId = this.getClientId();
+    const start = ms.browserLogin(clientId);
+    const redirected = await openPage(start.url, start.redirectUri);
+    const code = ms.parseRedirect(redirected);
+    const tokens = await ms.redeemCode(clientId, code, start.verifier);
+    const mc = await ms.minecraftLogin(tokens.access_token);
+    return this._storeMicrosoft(tokens.refresh_token, mc);
+  }
+
   async _storeMicrosoft(refreshToken, mc) {
     const d = await this.load();
     let acc = d.accounts.find((a) => a.type === 'microsoft' && a.uuid === mc.profile.id);

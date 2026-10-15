@@ -2,7 +2,59 @@
 const endpoints = require('../endpoints');
 const { request, postJson, getJson, HttpError, sleep } = require('../http');
 
+const crypto = require('node:crypto');
+
 const SCOPE = 'XboxLive.signin offline_access';
+/** The redirect registered for the app in Azure (Public client/native). */
+const REDIRECT_URI = 'https://login.microsoftonline.com/common/oauth2/nativeclient';
+
+const base64url = (buf) => buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+/**
+ * Starts a browser sign in (authorization code flow with PKCE). Returns the
+ * page to open and the verifier needed to redeem the code afterwards.
+ */
+function browserLogin(clientId) {
+  if (!clientId) throw new Error('No Microsoft app ID is set. Add one in Settings → Accounts.');
+  const verifier = base64url(crypto.randomBytes(32));
+  const challenge = base64url(crypto.createHash('sha256').update(verifier).digest());
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    scope: SCOPE,
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    prompt: 'select_account',
+  });
+  return { url: `${endpoints.msLogin}/authorize?${params}`, verifier, redirectUri: REDIRECT_URI };
+}
+
+/** Reads the result of the sign in page from the URL it redirected to. */
+function parseRedirect(url) {
+  const u = new URL(url);
+  const params = u.searchParams;
+  if (params.get('error')) {
+    if (params.get('error') === 'access_denied') throw Object.assign(new Error('Sign in was cancelled.'), { cancelled: true });
+    throw azureError({ error: params.get('error'), error_description: params.get('error_description') });
+  }
+  const code = params.get('code');
+  if (!code) throw new Error('Microsoft did not return a sign in code.');
+  return code;
+}
+
+async function redeemCode(clientId, code, verifier) {
+  const r = await postForm(`${endpoints.msLogin}/token`, {
+    grant_type: 'authorization_code',
+    client_id: clientId,
+    code,
+    redirect_uri: REDIRECT_URI,
+    code_verifier: verifier,
+    scope: SCOPE,
+  });
+  if (!r.access_token) throw azureError(r);
+  return r;
+}
 
 async function postForm(url, form, signal) {
   try {
@@ -160,4 +212,14 @@ async function getProfile(mcToken) {
   }
 }
 
-module.exports = { startDeviceCode, pollDeviceCode, refreshMicrosoft, minecraftLogin, getProfile };
+module.exports = {
+  startDeviceCode,
+  pollDeviceCode,
+  refreshMicrosoft,
+  minecraftLogin,
+  getProfile,
+  browserLogin,
+  parseRedirect,
+  redeemCode,
+  REDIRECT_URI,
+};
