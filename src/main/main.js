@@ -26,7 +26,7 @@ const { BlockTextures } = require('../core/blockTextures');
 const presets = require('../core/presets');
 const { safeJoin } = require('../core/util');
 
-const RELEASES_URL = 'https://github.com/axiomdev/axiom-launcher/releases/latest';
+const RELEASES_URL = 'https://github.com/Axiom-Dev123442/axiom-launcher/releases/latest';
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

@@ -67,7 +67,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "axiomdev",
+        "owner": "Axiom-Dev123442",
         "repo": "axiom-launcher",
         "releaseType": "release"
       }

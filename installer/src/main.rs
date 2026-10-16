@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const DOWNLOAD_URL: &str =
-    "https://github.com/axiomdev/axiom-launcher/releases/latest/download/Axiom-Full-Setup.exe";
+    "https://github.com/Axiom-Dev123442/axiom-launcher/releases/latest/download/Axiom-Full-Setup.exe";
 const WIDTH: f32 = 680.0;
 const HEIGHT: f32 = 420.0;
 const SIDE: f32 = 250.0;

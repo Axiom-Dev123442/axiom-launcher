@@ -7,7 +7,7 @@ const { once } = require('node:events');
 const { sha1File } = require('./util');
 const pkg = require('../../package.json');
 
-const USER_AGENT = `axiomdev/axiom-launcher/${pkg.version} (github.com/axiomdev/axiom-launcher)`;
+const USER_AGENT = `axiomdev/axiom-launcher/${pkg.version} (github.com/Axiom-Dev123442/axiom-launcher)`;
 
 class HttpError extends Error {
   constructor(status, url, body) {

