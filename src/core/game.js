@@ -38,9 +38,10 @@ async function latestCrashReport(gameDir, since) {
  * Emits: 'log' (id, line), 'state' (id, state), 'exit' (id, info).
  */
 class GameManager extends EventEmitter {
-  constructor({ paths, versions, java, instances, accounts, settings, tasks, launcherVersion }) {
+  /** beforeLaunch(inst, task), if given, runs once the mod loader is installed (the built-in Axiom client uses it). */
+  constructor({ paths, versions, java, instances, accounts, settings, tasks, launcherVersion, beforeLaunch = null }) {
     super();
-    Object.assign(this, { paths, versions, java, instances, accounts, settings, tasks, launcherVersion });
+    Object.assign(this, { paths, versions, java, instances, accounts, settings, tasks, launcherVersion, beforeLaunch });
     this.running = new Map();
     this.preparing = new Map();
     this.logs = new Map();
@@ -123,6 +124,7 @@ class GameManager extends EventEmitter {
       // Offline: already installed versions still work from disk.
     }
     const versionId = await this._ensureLoader(inst, task);
+    if (this.beforeLaunch) await this.beforeLaunch(inst, task);
     task.setStage('Reading version info');
     const version = await this.versions.resolve(versionId, task);
 

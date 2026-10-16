@@ -25,6 +25,7 @@ const { setupUpdater } = require('./updater');
 const { BlockTextures } = require('../core/blockTextures');
 const presets = require('../core/presets');
 const { safeJoin } = require('../core/util');
+const axiomClient = require('../core/axiomClient');
 
 const RELEASES_URL = 'https://github.com/Axiom-Dev123442/axiom-launcher/releases/latest';
 
@@ -64,6 +65,15 @@ const game = new GameManager({
   settings,
   tasks,
   launcherVersion: app.getVersion(),
+  // The Axiom client is built in: every Fabric 26.3 instance gets it (and Fabric API) when it starts.
+  beforeLaunch: async (inst, task) => {
+    try {
+      await axiomClient.ensure({ instances, content }, inst, task);
+    } catch (err) {
+      if (err.name === 'AbortError') throw err;
+      throw new Error(`Couldn't set up the Axiom Client: ${err.message} Check your connection, or turn off Axiom Client in this instance's settings.`);
+    }
+  },
 });
 
 let win = null;

@@ -295,3 +295,35 @@ test('world backups never overwrite the original', async () => {
   assert.equal((await worlds.list(inst.id)).find((w) => w.folder === 'Survival').backups, 1);
   await assert.rejects(() => worlds.backup(inst.id, '../../escape'));
 });
+
+test('the built-in Axiom client is installed, updated and removed', async () => {
+  const { InstanceStore } = require('../src/core/instances');
+  const { ContentManager } = require('../src/core/content');
+  const axiomClient = require('../src/core/axiomClient');
+  const { silentTask } = require('../src/core/tasks');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'axiom-client-'));
+  const instances = new InstanceStore(createPaths(root));
+  const content = new ContentManager(instances);
+  const inst = await instances.create({ name: 'A', mcVersion: axiomClient.MC_VERSION, loader: 'fabric' });
+  const mods = path.join(instances.gameDir(inst.id), 'mods');
+  await fsp.mkdir(mods, { recursive: true });
+  // Fabric API already there, and an old copy of the client under another name.
+  await fsp.writeFile(path.join(mods, 'fabric-api-0.1.jar'), 'api');
+  await fsp.writeFile(path.join(mods, 'axiom-client-0.1.0.jar'), 'old');
+
+  assert.equal(await axiomClient.ensure({ instances, content }, inst, silentTask()), true);
+  const bundled = await fsp.readFile(axiomClient.BUNDLED);
+  assert.deepEqual(await fsp.readFile(path.join(mods, axiomClient.JAR_NAME)), bundled);
+  await assert.rejects(fsp.access(path.join(mods, 'axiom-client-0.1.0.jar')));
+  const listed = (await content.list(inst.id, 'mod')).find((m) => m.file === axiomClient.JAR_NAME);
+  assert.equal(listed.builtIn, true);
+  // Nothing to do the second time.
+  assert.equal(await axiomClient.ensure({ instances, content }, inst, silentTask()), false);
+
+  // Turned off: the client is taken out again.
+  await axiomClient.ensure({ instances, content }, { ...inst, axiomClient: false }, silentTask());
+  await assert.rejects(fsp.access(path.join(mods, axiomClient.JAR_NAME)));
+  // Other versions never get it.
+  assert.equal(axiomClient.wanted({ loader: 'fabric', mcVersion: '1.21.1' }), false);
+  assert.equal(axiomClient.wanted({ loader: 'forge', mcVersion: axiomClient.MC_VERSION }), false);
+});

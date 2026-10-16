@@ -5,7 +5,7 @@ import { blurBackground } from '../lib/blocks.js';
 import { showError, toast, confirmDialog } from '../lib/ui.js';
 import { ago, bytes, duration, loaderName } from '../lib/format.js';
 import { pageOn, onLeave, navigate, back, render } from '../router.js';
-import { instanceIcon, loaderChip, versionChip, playButton } from '../components/common.js';
+import { instanceIcon, loaderChip, versionChip, playButton, axiomChip, hasAxiomSupport } from '../components/common.js';
 import { iconPicker, versionPicker, loaderVersionSelect } from '../components/newInstance.js';
 import { instanceMenu } from './library.js';
 
@@ -46,7 +46,7 @@ export function instancePage(route) {
       h(
         'div.top',
         instanceIcon(inst),
-        h('div.grow', h('h1', inst.name), h('div.chips', versionChip(inst), loaderChip(inst), inst.modpack && inst.modpack.name ? h('span.chip', icon('package'), `${inst.modpack.name} ${inst.modpack.versionNumber || ''}`) : null)),
+        h('div.grow', h('h1', inst.name), h('div.chips', versionChip(inst), loaderChip(inst), axiomChip(inst), inst.modpack && inst.modpack.name ? h('span.chip', icon('package'), `${inst.modpack.name} ${inst.modpack.versionNumber || ''}`) : null)),
         h('div.row', btn('', { cls: 'icon lg', icon: 'folder', title: 'Open folder', onClick: () => call('app:openFolder', 'instance', inst.id) }), more, playButton(inst.id)),
       ),
       tabs,
@@ -178,8 +178,9 @@ function contentTab(body, inst, type) {
             'div.list-row',
             { class: m.enabled ? '' : 'off' },
             m.icon ? h('img.ii', { src: m.icon, alt: '' }) : h('div.ii', { style: 'display:grid;place-items:center;color:var(--text-3)' }, icon(type === 'mod' ? 'puzzle' : 'image')),
-            h('div.meta', h('div.t', m.title, m.fromPack ? h('span.chip', { style: 'margin-left:8px;height:20px;font-size:11px' }, 'Pack') : null), h('div.s', [m.version, m.file].filter(Boolean).join(' · '))),
-            toggle(m.enabled, async (on) => {
+            h('div.meta', h('div.t', m.title, m.builtIn ? h('span.chip.axiom', { style: 'margin-left:8px;height:20px;font-size:11px' }, 'Built in') : m.fromPack ? h('span.chip', { style: 'margin-left:8px;height:20px;font-size:11px' }, 'Pack') : null), h('div.s', [m.version, m.file].filter(Boolean).join(' · '))),
+            // The Axiom Client is managed by the launcher: turn it off in Settings instead of here.
+            m.builtIn ? h('span.dim.small', { style: 'margin-right:6px' }, 'Managed by Axiom') : toggle(m.enabled, async (on) => {
               try {
                 await call('content:toggle', inst.id, type, m.file, on);
                 m.enabled = on;
@@ -189,7 +190,7 @@ function contentTab(body, inst, type) {
                 load();
               }
             }),
-            iconBtn('trash', {
+            m.builtIn ? null : iconBtn('trash', {
               title: 'Remove',
               onClick: async () => {
                 const ok = await confirmDialog({ title: `Remove ${m.title}?`, message: 'The file is deleted from this instance.', confirm: 'Remove', danger: true });
@@ -522,6 +523,18 @@ function settingsTab(body, inst) {
         h('h3', icon('edit'), 'General'),
         h('div.field', h('label', 'Name'), name),
         h('div.field', { style: 'margin:0' }, h('label', 'Icon'), iconPicker(inst.icon, (i) => save({ icon: i }, true))),
+      ),
+      // The built-in Axiom Client: on by default wherever it can run.
+      h(
+        'div.card',
+        h('h3', icon('sparkles'), 'Axiom Client'),
+        hasAxiomSupport(inst)
+          ? h(
+              'div',
+              h('label.row', { style: 'gap:10px' }, toggle(inst.axiomClient !== false, (v) => save({ axiomClient: v }, true)), 'Use the Axiom Client in this instance'),
+              h('p.small.dim', { style: 'margin:12px 0 0' }, 'Adds the Axiom menu (Right Shift in game), HUD, PvP and Bedwars mods, presets and cosmetics. Installed and kept up to date each time you press Play.'),
+            )
+          : h('p.small.dim', { style: 'margin:0' }, 'The Axiom Client runs on Fabric for Minecraft 26.3. Create one with New instance > Axiom Client, or switch this instance to Fabric 26.3.'),
       ),
       h(
         'div.card',

@@ -5,7 +5,7 @@ import { iconSrc } from '../lib/blocks.js';
 import { accountSkin, createViewer, skinThumbImg, performanceMode } from '../lib/skin.js';
 import { duration, ago, greeting, loaderName } from '../lib/format.js';
 import { pageOn, onLeave, navigate, render } from '../router.js';
-import { instanceIcon, loaderChip, versionChip, playButton, roundPlay, openInstance } from '../components/common.js';
+import { instanceIcon, loaderChip, versionChip, playButton, roundPlay, openInstance, axiomChip } from '../components/common.js';
 import { newInstanceDialog } from '../components/newInstance.js';
 import { accountMenu } from '../components/accounts.js';
 
@@ -35,11 +35,11 @@ function emptyHero() {
     h(
       'div.content',
       { style: 'justify-content:center;align-items:flex-start' },
-      h('h1', 'Create your first instance'),
-      h('p.muted', { style: 'margin:0;max-width:520px' }, 'Create an instance with any Minecraft version, add Fabric, Quilt or Forge for mods, or install a modpack in one click.'),
+      h('h1', 'Get the Axiom Client'),
+      h('p.muted', { style: 'margin:0;max-width:520px' }, 'Minecraft 26.3 with the Axiom menu, PvP and Bedwars mods and cosmetics built in, set up in one click. Or make an instance with any version and loader.'),
       h(
         'div.actions',
-        btn('New instance', { cls: 'primary lg', icon: 'plus', onClick: () => newInstanceDialog() }),
+        btn('Get Axiom Client', { cls: 'primary lg', icon: 'plus', onClick: () => newInstanceDialog() }),
         btn('Browse modpacks', { cls: 'lg', icon: 'compass', onClick: () => navigate({ page: 'browse', type: 'modpack' }) }),
         btn('Import', { cls: 'lg ghost', icon: 'package', onClick: () => newInstanceDialog({ tab: 'import' }) }),
       ),
@@ -90,7 +90,7 @@ export function homePage() {
     h('div.art'),
     h(
       'div.content',
-      h('div.row', { style: 'gap:16px' }, instanceIcon(featured), h('div', h('div.eyebrow', featured.lastPlayed ? `Last played ${ago(featured.lastPlayed).toLowerCase()}` : 'Not played yet'), h('div.row.wrap', { style: 'gap:6px;margin-top:6px' }, versionChip(featured), loaderChip(featured), featured.modpack && featured.modpack.name ? h('span.chip', icon('package'), 'Modpack') : null))),
+      h('div.row', { style: 'gap:16px' }, instanceIcon(featured), h('div', h('div.eyebrow', featured.lastPlayed ? `Last played ${ago(featured.lastPlayed).toLowerCase()}` : 'Not played yet'), h('div.row.wrap', { style: 'gap:6px;margin-top:6px' }, versionChip(featured), loaderChip(featured), axiomChip(featured), featured.modpack && featured.modpack.name ? h('span.chip', icon('package'), 'Modpack') : null))),
       h('h1', featured.name),
       h(
         'div.stats',

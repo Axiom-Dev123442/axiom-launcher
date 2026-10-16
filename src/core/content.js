@@ -134,6 +134,7 @@ class ContentManager {
         projectId: entry ? entry.projectId : null,
         versionId: entry ? entry.versionId : null,
         fromPack: Boolean(entry && entry.fromPack),
+        builtIn: Boolean(entry && entry.builtIn),
       });
     }
     return out.sort((a, b) => a.title.localeCompare(b.title));

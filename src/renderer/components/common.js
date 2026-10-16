@@ -124,3 +124,18 @@ export async function reloadInstances() {
   }
   return state.instances;
 }
+
+/** The Axiom Client runs on Fabric for Minecraft 26.3 (see core/axiomClient.js). */
+export function hasAxiomSupport(inst) {
+  return inst.loader === 'fabric' && inst.mcVersion === '26.3';
+}
+
+/** On unless the player turned it off for this instance. */
+export function hasAxiomClient(inst) {
+  return hasAxiomSupport(inst) && inst.axiomClient !== false;
+}
+
+/** The "Axiom" chip shown next to the version and loader of instances that have the client. */
+export function axiomChip(inst) {
+  return hasAxiomClient(inst) ? h('span.chip.axiom', 'Axiom') : null;
+}

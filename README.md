@@ -6,6 +6,7 @@ A custom Minecraft launcher for Windows. Play with Microsoft or offline accounts
 
 ## Features
 
+- **Axiom Client built in**: every Fabric instance for Minecraft 26.3 gets the Axiom Client when you press Play: the in-game Axiom menu (Right Shift, or the Axiom Mods button in the pause menu) with HUD, PvP and Bedwars mods, presets, profiles, cosmetics and the Outfit interface font. New instance > **Axiom Client** sets one up in one click. It is installed together with Fabric API, updated whenever the launcher updates, and can be turned off per instance in its settings.
 - **Accounts**: Microsoft sign in and offline accounts with any username, with quick switching between them
 - **Instances**: each one has its own version, mods, worlds, settings, RAM and Java arguments
 - **Mod loaders**: Vanilla, Fabric, Quilt and Forge, installed automatically when you press Play. Quilt instances can also use Fabric mods
@@ -74,6 +75,16 @@ npm run screenshots # regenerate docs/screenshots with demo data
 ```
 
 Building the Windows installer needs Windows (or Wine on Linux). GitHub Actions builds it on every push: open the run under **Actions** and download the **Axiom-Windows** artifact.
+
+### Updating the built-in Axiom Client
+
+The client lives in its own project (`axiom-client`, a Fabric mod). To ship a new version of it with the launcher:
+
+1. In `axiom-client`, run the Gradle `build` task. It makes `build/libs/axiom-client-<version>.jar`.
+2. Copy that jar to `assets/client/axiom-client.jar` here, replacing the old one.
+3. Publish a launcher release (below). Every instance gets the new client the next time it starts.
+
+If the client moves to a new Minecraft version, change `MC_VERSION` in `src/core/axiomClient.js` too.
 
 ### Publishing a release
 

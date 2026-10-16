@@ -2934,3 +2934,36 @@ input[type='range']::-webkit-slider-thumb {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The one-click Axiom Client card at the top of New instance. */
+.axiom-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--accent-ring);
+  background: linear-gradient(120deg, var(--accent-soft), transparent 70%), var(--surface);
+}
+.axiom-card img {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  flex: none;
+}
+.axiom-card b {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.axiom-card span {
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.chip.axiom {
+  background: var(--accent-soft);
+  color: var(--accent-2);
+  border-color: transparent;
+}

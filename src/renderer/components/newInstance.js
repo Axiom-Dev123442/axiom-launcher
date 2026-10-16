@@ -1,6 +1,6 @@
 /** The "New instance" dialog, with a tab for importing packs. */
 import { h, btn, segmented, spinner, toggle } from '../lib/dom.js';
-import { icon, loaderIcon } from '../lib/icons.js';
+import { icon, loaderIcon, logo } from '../lib/icons.js';
 import { call, state, refreshInstances, pathForFile } from '../lib/store.js';
 import { modal, showError, toast } from '../lib/ui.js';
 import { BLOCK_NAMES, blockIcon, imageToIcon } from '../lib/blocks.js';
@@ -218,8 +218,30 @@ export function newInstanceDialog({ tab = 'create' } = {}) {
     };
     renderLoaders();
 
+    // The Axiom Client is built into the launcher: one click makes a Fabric 26.3 instance that has it.
+    const axiomBtn = btn('Create', { cls: 'primary', icon: 'plus' });
+    axiomBtn.addEventListener('click', async () => {
+      axiomBtn.disabled = true;
+      try {
+        const inst = await call('instances:create', { name: 'Axiom Client', icon: { type: 'preset', value: 'diamond' }, mcVersion: '26.3', loader: 'fabric', loaderVersion: null, axiomClient: true });
+        await refreshInstances();
+        close(inst);
+        navigate({ page: 'instance', id: inst.id });
+        toast('Axiom Client is ready', { kind: 'success', message: 'Press Play, then Right Shift in game for the Axiom menu.' });
+      } catch (err) {
+        axiomBtn.disabled = false;
+        showError(err, 'Could not create the Axiom Client');
+      }
+    });
+    const axiomCard = h(
+      'div.axiom-card',
+      logo(),
+      h('div.grow', h('b', 'Axiom Client'), h('span', 'Minecraft 26.3 with the Axiom menu (Right Shift), PvP and Bedwars mods, presets and cosmetics built in.')),
+      axiomBtn,
+    );
     const createPane = h(
       'div',
+      axiomCard,
       h('div.field', h('label', 'Name'), nameInput),
       h('div.field', h('label', 'Icon'), iconPicker(form.icon, (i) => (form.icon = i))),
       h('div.field', h('label', 'Minecraft version'), versionPicker(null, (v) => {

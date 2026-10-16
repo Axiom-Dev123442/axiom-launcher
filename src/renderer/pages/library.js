@@ -5,7 +5,7 @@ import { blurBackground } from '../lib/blocks.js';
 import { menu, confirmDialog, promptDialog, showError, toast } from '../lib/ui.js';
 import { ago, duration } from '../lib/format.js';
 import { pageOn } from '../router.js';
-import { instanceIcon, loaderChip, versionChip, roundPlay, openInstance, launch, statusDot } from '../components/common.js';
+import { instanceIcon, loaderChip, versionChip, roundPlay, openInstance, launch, statusDot, axiomChip } from '../components/common.js';
 import { newInstanceDialog } from '../components/newInstance.js';
 
 /** The actions menu shared by instance cards and the instance page. */
@@ -93,7 +93,7 @@ function card(inst, i) {
     h(
       'div.body',
       h('div.name', inst.name),
-      h('div.chips', versionChip(inst), loaderChip(inst), inst.modpack && inst.modpack.name ? h('span.chip', icon('package'), 'Pack') : null),
+      h('div.chips', versionChip(inst), loaderChip(inst), axiomChip(inst), inst.modpack && inst.modpack.name ? h('span.chip', icon('package'), 'Pack') : null),
       h('div.foot', inst.lastPlayed ? `${/ago|now|Yesterday/.test(ago(inst.lastPlayed)) ? `Played ${ago(inst.lastPlayed).toLowerCase()}` : `Played ${ago(inst.lastPlayed)}`}${inst.playtime ? ` · ${duration(inst.playtime)}` : ''}` : 'Never played'),
     ),
     roundPlay(inst.id),
