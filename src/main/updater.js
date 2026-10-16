@@ -37,8 +37,17 @@ function setupUpdater({ send, enabled, api }) {
   autoUpdater.on('update-downloaded', (info) => set({ state: 'ready', version: info.version }));
   autoUpdater.on('error', (err) => set({ state: 'error', message: err.message }));
 
-  setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 5000);
-  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
+  // People leave the launcher open for hours, so look often: at start, every 30 minutes, and when
+  // they come back to the window (at most every 10 minutes). Once an update is ready, stop looking.
+  let lastCheck = 0;
+  const check = (minGapMs) => {
+    if (status.state === 'ready' || status.state === 'downloading' || Date.now() - lastCheck < minGapMs) return;
+    lastCheck = Date.now();
+    autoUpdater.checkForUpdates().catch(() => {});
+  };
+  setTimeout(() => check(0), 5000);
+  setInterval(() => check(0), 30 * 60 * 1000);
+  require('electron').app.on('browser-window-focus', () => check(10 * 60 * 1000));
 }
 
 module.exports = { setupUpdater };
