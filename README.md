@@ -36,10 +36,6 @@ Download `Axiom-Setup.exe` from the [latest release](https://github.com/Axiom-De
 
 ![Installer](docs/installer/setup.png)
 
-### Coming from Obsidian
-
-Axiom was previously released as Obsidian. On first start it moves `%APPDATA%\.obsidian` to `%APPDATA%\.axiom`, so your instances, worlds, offline accounts and downloaded Java carry over. Microsoft accounts need to sign in once more.
-
 ## Setup notes
 
 ### Microsoft login

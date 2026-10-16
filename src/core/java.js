@@ -30,11 +30,9 @@ function javaBinary(home, { console = false } = {}) {
 }
 
 const MARKER = '.axiom-runtime.json';
-/** Written by versions released as Obsidian; still read so their Java is not downloaded again. */
-const LEGACY_MARKER = '.obsidian-runtime.json';
 
-async function readMarker(home) {
-  return (await readJson(path.join(home, MARKER), null)) || readJson(path.join(home, LEGACY_MARKER), null);
+function readMarker(home) {
+  return readJson(path.join(home, MARKER), null);
 }
 
 class JavaService {

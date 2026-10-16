@@ -148,7 +148,7 @@ export async function useRealTextures(textures) {
 /** Returns a PNG data URL for a block icon. */
 export function blockIcon(name) {
   if (real.has(name)) return real.get(name);
-  if (!BLOCKS[name]) name = 'obsidian';
+  if (!BLOCKS[name]) name = 'stone';
   if (cache.has(name)) return cache.get(name);
   const px = new Array(256);
   BLOCKS[name](px, rng(hashStr(name)));
@@ -174,7 +174,7 @@ export function blockIcon(name) {
 
 /** The image source for an instance's icon setting. */
 export function iconSrc(icon) {
-  if (!icon) return blockIcon('obsidian');
+  if (!icon) return blockIcon('diamond');
   if (icon.type === 'image' || icon.type === 'url') return icon.value;
   return blockIcon(icon.value);
 }

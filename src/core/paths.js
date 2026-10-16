@@ -1,5 +1,4 @@
 'use strict';
-const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
@@ -12,26 +11,9 @@ function dataBase() {
   );
 }
 
-/**
- * The launcher's data folder. Earlier versions were called Obsidian and kept
- * everything in .obsidian; that folder is moved to .axiom the first time, so
- * instances, accounts and downloads carry over.
- */
+/** The launcher's data folder: .axiom in the user's app data, or AXIOM_HOME if set. */
 function defaultRoot() {
-  const custom = process.env.AXIOM_HOME || process.env.OBSIDIAN_HOME;
-  if (custom) return custom;
-  const base = dataBase();
-  const root = path.join(base, '.axiom');
-  const legacy = path.join(base, '.obsidian');
-  if (!fs.existsSync(root) && fs.existsSync(path.join(legacy, 'settings.json'))) {
-    try {
-      fs.renameSync(legacy, root);
-    } catch {
-      // Something still holds a file in it (the old launcher is open); keep using it this time.
-      return legacy;
-    }
-  }
-  return root;
+  return process.env.AXIOM_HOME || path.join(dataBase(), '.axiom');
 }
 
 /** All on-disk locations used by the launcher, derived from one root folder. */

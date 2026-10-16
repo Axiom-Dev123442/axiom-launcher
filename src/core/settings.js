@@ -58,8 +58,6 @@ class Settings {
     if (!this._loading) {
       this._loading = readJson(this.file, {}).then((saved) => {
         this.data = { ...DEFAULTS, ...saved, discord: { ...DEFAULTS.discord, ...(saved.discord || {}) } };
-        // The default theme was called "obsidian" before the launcher became Axiom.
-        if (this.data.theme === 'obsidian') this.data.theme = 'axiom';
       });
     }
     await this._loading;

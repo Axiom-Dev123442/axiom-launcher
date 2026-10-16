@@ -4,7 +4,7 @@ const fsp = require('node:fs/promises');
 const { readJson, writeJson, exists, slugify, withLock, lockKey } = require('./util');
 
 const DEFAULTS = {
-  icon: { type: 'preset', value: 'obsidian' },
+  icon: { type: 'preset', value: 'diamond' },
   loader: 'vanilla',
   loaderVersion: null,
   versionId: null,

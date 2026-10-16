@@ -64,7 +64,7 @@ const PRESETS = {
   },
   cpvp: {
     name: 'Crystal PvP',
-    icon: 'obsidian',
+    icon: 'amethyst',
     description: 'Instant crystal placing, maximum FPS and low fire for crystal PvP.',
     anchor: 'marlows-crystal-optimizer',
     memory: 3072,
